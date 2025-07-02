@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="180dp"
+    android:layout_height="180dp"
+    android:background="@drawable/widget_bg"
+    android:padding="5dp">
+
+  <RelativeLayout
+      android:layout_width="170dp"
+      android:layout_height="wrap_content">
+    <!-- Manual Refresh Button -->
+    <!-- Last Updated -->
+
+    <ImageView
+        android:id="@+id/refresh_button"
+        android:layout_width="wrap_content"
+        android:layout_height="29dp"
+        android:layout_alignParentStart="false"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="145dp"
+        android:layout_marginTop="7dp"
+        android:clickable="true"
+        android:contentDescription="Refresh"
+        android:focusable="true"
+        android:padding="4dp"
+        android:src="@android:drawable/ic_popup_sync" />
+
+    <TextView
+        android:id="@+id/last_updated"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="false"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="4dp"
+        android:text="last updated: 3:43 pm"
+        android:textColor="#000000"
+        android:textSize="6sp" />
+
+    <!-- Resort Name -->
+    <TextView
+        android:id="@+id/resort_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="7dp"
+        android:shadowColor="#80000000"
+        android:shadowDx="1"
+        android:shadowDy="1"
+        android:shadowRadius="2"
+        android:text="Brighton Resort"
+        android:textColor="#000000"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+
+    <!-- Travel Up -->
+    <TextView
+        android:id="@+id/travel_up_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/resort_name"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="2dp"
+        android:text="Travel Up: "
+        android:textColor="#000000"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/travel_up"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/resort_name"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="66dp"
+        android:layout_marginTop="-2dp"
+        android:layout_toEndOf="@id/travel_up_static"
+        android:text="23"
+        android:textColor="#000000"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/travel_up_mins"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/resort_name"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="90dp"
+        android:layout_marginTop="8dp"
+        android:layout_toEndOf="@id/travel_up_static"
+        android:text="mins"
+        android:textColor="#000000"
+        android:textSize="10sp" />
+
+    <!-- Travel Down -->
+    <TextView
+        android:id="@+id/travel_down_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/travel_up_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="5dp"
+        android:text="Travel Down:"
+        android:textColor="#000000"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/travel_down"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/travel_up"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="-3dp"
+        android:layout_toEndOf="@id/travel_down_static"
+        android:text="45"
+        android:textColor="#000000"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/travel_down_mins"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/travel_up"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="6dp"
+        android:layout_toEndOf="@id/travel_down"
+        android:text="mins"
+        android:textColor="#000000"
+        android:textSize="10sp" />
+
+    <!-- Alerts -->
+    <TextView
+        android:id="@+id/alerts_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/travel_down_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="5dp"
+        android:text="ALERTS"
+        android:textColor="#000000"
+        android:textSize="8sp"
+        android:textStyle="bold" />
+
+    <!-- Road ALERT -->
+    <TextView
+        android:id="@+id/travel_alerts_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/alerts_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="1dp"
+        android:text="Road:"
+        android:textColor="#000000"
+        android:textSize="8sp" />
+
+    <TextView
+        android:id="@+id/travel_alerts"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/alerts_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="25dp"
+        android:layout_marginTop="1dp"
+        android:text="None"
+        android:textColor="#000000"
+        android:textSize="8sp" />
+
+    <!-- Parking ALERT -->
+    <TextView
+        android:id="@+id/parking_alerts_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/travel_alerts_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:text="Parking:"
+        android:textColor="#000000"
+        android:textSize="8sp" />
+
+    <TextView
+        android:id="@+id/parking_alerts"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/travel_alerts"
+        android:layout_alignParentStart="false"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="2dp"
+        android:layout_toEndOf="@id/parking_alerts_static"
+        android:text="None"
+        android:textColor="#000000"
+        android:textSize="8sp" />
+    <!-- Weather ALERT -->
+    <TextView
+        android:id="@+id/weather_alerts_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/parking_alerts_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:text="Weather: "
+        android:textColor="#000000"
+        android:textSize="8sp" />
+
+    <TextView
+        android:id="@+id/weather_alerts"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/parking_alerts"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="42dp"
+        android:layout_marginTop="2dp"
+        android:text="None"
+        android:textColor="#000000"
+        android:textSize="8sp" />
+
+    <!-- Operating Hours -->
+    <TextView
+        android:id="@+id/operating_hours_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/weather_alerts_static"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:text="Hours:"
+        android:textColor="#000000"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/operating_hours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/weather_alerts"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="45dp"
+        android:layout_marginTop="-2dp"
+        android:text="9am - 9pm"
+        android:textColor="#000000"
+        android:textSize="18sp" />
+
+
+  </RelativeLayout>
+
+</FrameLayout>
