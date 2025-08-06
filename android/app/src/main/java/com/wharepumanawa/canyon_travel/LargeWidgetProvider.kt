@@ -61,7 +61,15 @@ class LargeWidgetProvider : AppWidgetProvider() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL(apiUrl)
+                val prefs = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+                val selectedResort = prefs.getString("SELECTED_RESORT", null)
+                val urlString = if (selectedResort != null) {
+                    "$apiUrl?resort=$selectedResort"
+                } else {
+                    apiUrl
+                }
+
+                val url = URL(urlString)
                 val conn = url.openConnection() as java.net.HttpURLConnection
                 conn.requestMethod = "GET"
                 conn.setRequestProperty("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc")
