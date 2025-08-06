@@ -1,9 +1,13 @@
-import {StyleSheet} from "react-native";
+import {Dimensions, StyleSheet} from "react-native";
 import {Theme} from '@react-navigation/native';
 
 const getStyles = (colors: Theme['colors']) => {
 
     return StyleSheet.create({
+        map: {
+            width: Dimensions.get('window').width,
+            height: (Dimensions.get('window').height-90) * (2 / 3),
+        },
         forecastHeading: {
             fontSize: 14,
             fontWeight: 'bold',
@@ -35,8 +39,12 @@ const getStyles = (colors: Theme['colors']) => {
         },
         container: {
             flex: 1,
-            padding: 20, marginTop: 20
+            padding: 4, marginTop: 20
 
+        },
+        cameraContainer: {
+            padding: 12,
+            backgroundColor: colors.background,
         },
         radarContainer: {
             flex: 1,
@@ -553,7 +561,7 @@ const getStyles = (colors: Theme['colors']) => {
             width: 80,
             height: 44,
             marginTop: -10,
-            marginLeft: -5  ,
+            marginLeft: -5,
             resizeMode: 'contain',
         },
         radarIcon: {
@@ -566,13 +574,15 @@ const getStyles = (colors: Theme['colors']) => {
         toggleButton: {
             alignSelf: 'flex-end',
             marginBottom: -10,
-            paddingVertical: 6,
-            paddingHorizontal: 12,
+            marginTop: -10,
+            paddingVertical: 2,
+            paddingHorizontal: 8,
+            color: 'white',
             borderRadius: 20,
+            zIndex: 99,
             backgroundColor: '#007bff', // or '#888' when inactive
         },
         toggleButtonText: {
-            color: 'white',
             fontSize: 12,
             fontWeight: '600',
         },
@@ -588,15 +598,221 @@ const getStyles = (colors: Theme['colors']) => {
             shadowRadius: 4,
             justifyContent: 'space-between',
         },
-        styledFavorite:{
+        styledFavorite: {
             color: colors.primary
         },
-        nonFavorite:{
+        nonFavorite: {
             color: colors.border
         },
         scrollContentContainer: {
             paddingBottom: 120, // enough to scroll past footer
-        }
+        },
+        travelInfoPanel: {
+            backgroundColor: 'white',
+            padding: 4,
+            width: Dimensions.get('window').width,
+            height: (Dimensions.get('window').height-90) * (1/3),
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderColor: '#ccc',
+            borderWidth: 1,
+            overflow: 'hidden'
+        },
+        subText: {
+            fontSize: 14,
+            marginBottom: 8
+        },
+        row: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 6
+        },
+        label: {
+            fontWeight: '600',
+            marginRight: 6
+        },
+        timeValue: {
+            fontSize: 22,
+            fontWeight: 'bold',
+            marginRight: 16
+        },
+        infoLine: {
+            fontSize: 14,
+            marginBottom: 4
+        },
+        updated: {
+            fontSize: 12,
+            color: '#777',
+            marginTop: 8
+        },
+        toggleText: {
+            color: '#FFFFFF',
+            fontSize: 12,
+            fontWeight: '600',
+        },
+        panelHeader: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginBottom: 4,
+        },
+        panelSubtext: {
+            fontSize: 14,
+            marginBottom: 8,
+        },
+        infoText: {
+            fontSize: 14,
+            marginBottom: 4,
+        },
+        footerText: {
+            fontSize: 12,
+            color: '#777',
+            marginTop: 8,
+        },
+        cameraCard: {
+            marginBottom: 20,
+            padding: 12,
+            borderRadius: 8,
+            backgroundColor: colors.card,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 2,
+        },
+        cameraLocation: {
+            fontSize: 14,
+            fontWeight: '600',
+            color: colors.text,
+            marginBottom: 6,
+        },
+        cameraImage: {
+            width: '100%',
+            height: 200,
+            borderRadius: 6,
+            backgroundColor: '#e9ecef',
+        },
+        refreshButton: {
+            alignSelf: 'flex-end',
+            marginBottom: 12,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            backgroundColor: colors.primary,
+            borderRadius: 20,
+        },
+        refreshText: {
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 'bold',
+        },
+        summaryCard: {
+            padding: 12,
+            backgroundColor: '#FFE08A',
+            borderRadius: 6,
+            marginBottom: 10,
+        },
+
+        summaryText: {
+            fontWeight: '600',
+            fontSize: 14,
+        },
+
+        alertSection: {
+            marginBottom: 10,
+        },
+
+        alertText: {
+            color: '#D00',
+            fontWeight: '600',
+            marginBottom: 4,
+        },
+
+        noAlertText: {
+            fontSize: 14,
+            color: 'green',
+            marginBottom: 10,
+        },
+
+        conditionsSection: {
+            marginTop: 12,
+        },
+
+        conditionCard: {
+            backgroundColor: '#f9f9f9',
+            padding: 10,
+            borderRadius: 6,
+            marginBottom: 8,
+        },
+
+        roadName: {
+            fontWeight: 'bold',
+            fontSize: 13,
+            marginBottom: 4,
+        },
+
+        conditionText: {
+            fontSize: 12,
+        },
+
+        eventSection: {
+            marginTop: 16,
+        },
+
+        eventCard: {
+            padding: 12,
+            borderRadius: 6,
+            backgroundColor: '#e9ecef',
+            marginBottom: 10,
+        },
+
+        eventHeader: {
+            fontWeight: 'bold',
+            fontSize: 14,
+            marginBottom: 6,
+        },
+
+        eventDescription: {
+            fontSize: 13,
+            marginBottom: 6,
+        },
+
+        eventComment: {
+            fontSize: 12,
+            fontStyle: 'italic',
+            color: '#555',
+        },
+
+        eventMeta: {
+            fontSize: 12,
+            color: '#444',
+        },
+
+        closure: {
+            marginTop: 6,
+            color: '#D00',
+            fontWeight: 'bold',
+        },
+        tile: {
+            margin: 12,
+            padding: 10,
+            backgroundColor: '#f8f8f8',
+            borderRadius: 12,
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 }
+        },
+        title: {
+            fontSize: 18,
+            fontWeight: '600',
+            marginBottom: 4,
+        },
+        description: {
+            fontSize: 14,
+            color: '#555',
+            marginBottom: 8,
+        },
+
     });
 }
 

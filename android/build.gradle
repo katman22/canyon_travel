@@ -21,16 +21,25 @@ def reactNativeAndroidDir = new File(
 )
 
 allprojects {
-  repositories {
-    maven {
-      // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-      url(reactNativeAndroidDir)
-    }
+    configurations.all {
+      resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'com.google.android.material') {
+          details.useVersion '1.11.0'
+        }
+        if (details.requested.group == 'androidx.appcompat') {
+          details.useVersion '1.6.1'
+        }
+        if (details.requested.group == 'androidx.core') {
+          details.useVersion '1.10.1'
+        }
+        if (details.requested.group == 'androidx.activity') {
+          details.useVersion '1.7.2'
+        }
+      }
 
-    google()
-    mavenCentral()
-    maven { url 'https://www.jitpack.io' }
-  }
+      // Still good to exclude any old support library
+      exclude group: 'com.android.support', module: 'appcompat-v7'
+    }
 }
 
 apply plugin: "expo-root-project"

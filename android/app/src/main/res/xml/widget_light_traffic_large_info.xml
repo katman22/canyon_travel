@@ -3,7 +3,7 @@
     android:minWidth="124dp"
     android:minHeight="194dp"
     android:updatePeriodMillis="900000"
-    android:initialLayout="@layout/widget_traffic_large"
+    android:initialLayout="@layout/widget_light_traffic_large"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

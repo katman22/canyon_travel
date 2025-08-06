@@ -1,32 +1,22 @@
+import React from "react";
+import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { useSelectedResort } from "@/context/ResortContext";
 
-export type ResortId = "brighton" | "alta" | "snowbird" | "solitude";
+export default function ResortSelectorScreen() {
+    const { allResorts, selectResort } = useSelectedResort();
 
-export interface Resort {
-    id: ResortId;
-    name: string;
-    theme: string;
+    return (
+        <View>
+            <Text>Select Your Resort</Text>
+            <FlatList
+                data={allResorts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => selectResort(item.id)}>
+                        <Text>{item.name}</Text>
+                    </TouchableOpacity>
+                )}
+            />
+        </View>
+    );
 }
-
-export const RESORTS: Record<ResortId, Resort> = {
-    brighton: {
-        id: "brighton",
-        name: "Brighton Resort",
-        theme: "purps",
-    },
-    alta: {
-        id: "alta",
-        name: "Alta Ski Area",
-        theme: "cloudy",
-    },
-    snowbird: {
-        id: "snowbird",
-        name: "Snowbird",
-        theme: "clock",
-    },
-    solitude: {
-        id: "solitude",
-        name: "Solitude Mountain Resort",
-        theme: "ocean",
-    },
-};
-
