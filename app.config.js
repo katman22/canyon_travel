@@ -7,11 +7,11 @@ export default {
         scheme: "canyontravel",
         version: "1.0.0",
         orientation: "portrait",
-        icon: "./assets/app_icon_final.png",
+        icon: "./assets/canyon_travellers_LO_v1.png",
         userInterfaceStyle: "light",
         newArchEnabled: false,
         splash: {
-            image: "./assets/app_icon_final.png",
+            image: "./assets/canyon_travellers_LO_v1.png",
             resizeMode: "contain",
             backgroundColor: "#ffffff"
         },
@@ -20,9 +20,9 @@ export default {
             bundleIdentifier: "com.wharepumanawa.canyontravel"
         },
         android: {
-            icon: "./assets/app_icon_final.png",
+            icon: "./assets/canyon_travellers_LO_v1.png",
             adaptiveIcon: {
-                foregroundImage: "./assets/app_icon_final.png",
+                foregroundImage: "./assets/canyon_travellers_LO_v1.png",
                 backgroundColor: "#ffffff"
             },
             edgeToEdgeEnabled: false,
@@ -34,7 +34,7 @@ export default {
             }
         },
         web: {
-            favicon: "./assets/app_icon_final.png"
+            favicon: "./assets/canyon_travellers_LO_v1.png"
         },
         plugins: [
             "expo-router"
