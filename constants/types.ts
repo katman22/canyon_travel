@@ -1,98 +1,5 @@
 
 
-export type ForecastItem = {
-  name: string;
-  icon: string;
-  isDaytime: boolean;
-  temperature: number;
-  temperatureUnit: string;
-  shortForecast: string;
-  detailedForecast: string;
-  number: string;
-};
-
-export type ForecastPeriod = {
-  number: string;
-  name: string;
-  icon: string;
-  isDaytime: boolean;
-  temperature: number;
-  temperatureUnit: string;
-  shortForecast: string;
-  detailedForecast: string;
-  windSpeed: string,
-  windDirection: string,
-  startTime: string,
-  dewpoint:{
-    unitCode: string,
-    value: number | null;
-  };
-  relativeHumidity: {
-    "unitCode": string,
-    "value": number | null;
-  },
-  probabilityOfPrecipitation: {
-    unitCode: string;
-    value: number | null; // sometimes it might be null
-  };
-};
-
-export interface LocationData {
-  name: string;
-  lat: string;
-  lng: string;
-  favorite?: boolean;
-  notify?: boolean;
-  favoritedAt?: string;
-}
-
-export type LocationHourlyForecast = {
-  periods: ForecastPeriod[];
-};
-
-export type LocationPeriodForecast = {
-  period: ForecastPeriod;
-};
-
-export type LocationForecast = {
-  forecast_locale: string;
-  forecasts: ForecastItem[];
-  lat: string;
-  long: string;
-  favorite?: boolean;
-  name: string;
-};
-
-export type RadarLocation = {
-  radar: {
-    radar: string;
-  };
-};
-
-export type Discussion = {
-  discussion: DiscussionData;
-}
-
-export type DiscussionData = {
-  synopsis: string;
-  short_term: string;
-  long_range: string;
-  aviation: string;
-  fire_weather: string;
-  watches_warnings: string;
-}
-
-export type WatchesAndAlerts= {
-  alerts: Alert[];
-  fire_weather: string;
-  watches_warnings: string;
-};
-
-
-export type Alerts= {
-  alerts: Alert[]
-};
-
 export type Alert= {
   effective: string;
   headline: string;
@@ -112,3 +19,138 @@ export type Alert= {
   instruction: string;
   response: string;
 };
+
+export type TravelTimes= {
+  resort: string;
+  to_resort: string;
+  from_resort: string;
+  departure_point: string;
+  parking: string;
+  weather: string;
+  traffic: string;
+  updated_at: string;
+}
+
+export interface GoogleDirectionsResponse {
+  routes: Route[];
+}
+
+export interface Route {
+  bounds: Bounds;
+  copyrights: string;
+  legs: Leg[];
+  overview_polyline: Polyline;
+  summary: string;
+  warnings: string[];
+  waypoint_order: number[];
+}
+
+export interface Bounds {
+  northeast: LatLng;
+  southwest: LatLng;
+}
+
+export interface Leg {
+  distance: TextValue;
+  duration: TextValue;
+  duration_in_traffic: TextValue;
+  end_address: string;
+  end_location: LatLng;
+  start_address: string;
+  start_location: LatLng;
+  steps: Step[];
+  traffic_speed_entry: any[]; // Usually empty
+  via_waypoint: any[];        // Usually empty
+}
+
+export interface Step {
+  distance: TextValue;
+  duration: TextValue;
+  end_location: LatLng;
+  html_instructions: string;
+  maneuver?: string;
+  polyline: Polyline;
+  start_location: LatLng;
+  travel_mode: string;
+}
+
+export interface TextValue {
+  text: string;
+  value: number;
+}
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+export interface Polyline {
+  points: string;
+}
+
+export interface UdotCamera {
+  Id: number;
+  Source: string;
+  SourceId: string;
+  Roadway: string;
+  Direction: string;
+  Latitude: number;
+  Longitude: number;
+  Location: string;
+  SortOrder: number;
+  Views: UdotCameraView[];
+}
+
+export interface UdotCameraView {
+  Id: number;
+  Url: string;
+  Status: string;
+  Description: string;
+}
+
+export interface UdotCameraResponse {
+  cameras: UdotCamera[];
+}
+export interface AlertEventResponse {
+  alerts_events: AlertsEvents;
+}
+
+export interface AlertsEvents {
+  conditions: RoadCondition[];
+  events: UdotEvent[];
+  alerts: WeatherAlert[]; // Assuming you may expand this
+  summary: string;
+}
+
+export interface RoadCondition {
+  Id: number;
+  SourceId: string;
+  RoadCondition: string;
+  WeatherCondition: string;
+  Restriction: string;
+  RoadwayName: string;
+  LastUpdated: number;
+}
+
+export interface UdotEvent {
+  RoadwayName: string;
+  Organization: string;
+  Description: string;
+  Comment: string;
+  IsFullClosure: boolean;
+  EventCategory: string;
+  Location: string;
+  MPStart: string;
+  MPEnd: string;
+}
+
+export interface WeatherAlert {
+  title: string;
+  description?: string;
+  severity?: string;
+  source?: string;
+  expires_at?: string;
+}
+
+
+

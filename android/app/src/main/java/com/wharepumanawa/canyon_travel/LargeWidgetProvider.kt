@@ -14,19 +14,19 @@ import org.json.JSONObject
 import android.util.Log
 import android.widget.Toast
 
-class CanyonWidgetProvider : AppWidgetProvider() {
+class LargeWidgetProvider : AppWidgetProvider() {
 
-    private val apiUrl = "http://192.168.11.60:3000/api/v1/canyon_times/times" // ← Update this!
+    private val apiUrl = "https://pumanawa-kam.onrender.com/api/v1/canyon_times/times" // ← Update this!
     companion object {
             const val ACTION_REFRESH = "com.wharepumanawa.canyon_travel.ACTION_REFRESH"
         }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.widget_layout)
+            val views = RemoteViews(context.packageName, R.layout.widget_traffic_large)
 
             // 🔁 Refresh button action
-            val refreshIntent = Intent(context, CanyonWidgetProvider::class.java).apply {
+            val refreshIntent = Intent(context, LargeWidgetProvider::class.java).apply {
                 action = ACTION_REFRESH
             }
             val refreshPendingIntent = PendingIntent.getBroadcast(
@@ -57,7 +57,7 @@ class CanyonWidgetProvider : AppWidgetProvider() {
 
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.widget_layout)
+        val views = RemoteViews(context.packageName, R.layout.widget_traffic_large)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -70,14 +70,12 @@ class CanyonWidgetProvider : AppWidgetProvider() {
 
                 withContext(Dispatchers.Main) {
                     views.setTextViewText(R.id.resort_name, data.resort)
-                    views.setTextViewText(R.id.resort_name, data.resort)
-                    views.setTextViewText(R.id.travel_up, "${data.toResort}")
-                    views.setTextViewText(R.id.travel_down, "${data.toMouth}")
-                    views.setTextViewText(R.id.travel_alerts, data.travelAlert)
-                    views.setTextViewText(R.id.parking_alerts, data.parking)
-                    views.setTextViewText(R.id.weather_alerts, data.weatherAlert)
-                    views.setTextViewText(R.id.operating_hours, data.hours)
-                    views.setTextViewText(R.id.last_updated, "last updated: ${data.updatedAt}")
+                    views.setTextViewText(R.id.to_resort, "${data.toResort}")
+                    views.setTextViewText(R.id.from_resort, "${data.fromResort}")
+                    views.setTextViewText(R.id.traffic, data.traffic)
+                    views.setTextViewText(R.id.parking, data.parking)
+                    views.setTextViewText(R.id.weather, data.weather)
+                    views.setTextViewText(R.id.next_update, "last updated: ${data.updatedAt}")
 
                     appWidgetManager.updateAppWidget(appWidgetId, views)
 
@@ -96,7 +94,7 @@ class CanyonWidgetProvider : AppWidgetProvider() {
         super.onReceive(context, intent)
         if (intent.action == ACTION_REFRESH) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = ComponentName(context, CanyonWidgetProvider::class.java)
+            val componentName = ComponentName(context, LargeWidgetProvider::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
             for (appWidgetId in appWidgetIds) {
@@ -110,23 +108,21 @@ class CanyonWidgetProvider : AppWidgetProvider() {
         return CanyonData(
             resort = json.getString("resort"),
             toResort = json.getInt("to_resort"),
-            toMouth = json.getInt("to_mouth"),
+            fromResort = json.getInt("from_resort"),
             parking = json.getString("parking"),
-            hours = json.getString("hours"),
             updatedAt = json.getString("updated_at"),
-            travelAlert = json.getString("travel_alert"),
-            weatherAlert = json.getString("weather_alert")
+            traffic = json.getString("traffic"),
+            weather = json.getString("weather")
         )
     }
 
     data class CanyonData(
         val resort: String,
         val toResort: Int,
-        val toMouth: Int,
+        val fromResort: Int,
         val parking: String,
-        val weatherAlert: String,
-        val travelAlert: String,
-        val hours: String,
+        val weather: String,
+        val traffic: String,
         val updatedAt: String
     )
 

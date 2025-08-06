@@ -1,87 +1,45 @@
-// hooks/useWeatherService.ts
+// hooks/useRemoteService.ts
 import axios from 'axios';
 import Constants from 'expo-constants';
-import {
-  ForecastPeriod,
-  LocationData,
-  LocationForecast,
-  LocationHourlyForecast,
-  RadarLocation,
-  Alerts,
-  Discussion, WatchesAndAlerts
-} from "@/constants/types"
-import {LatLong} from "@/components/LatLongContext"
+import {AlertEventResponse, GoogleDirectionsResponse, TravelTimes, UdotCameraResponse} from "@/constants/types";
+import {Resort} from "@/context/ResortListContext"
+const api_server = "https://pumanawa-kam.onrender.com/api/v1";
+const token =  "eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc";
+//Constants.expoConfig?.extra?.apiJwtToken ??
+//Constants.expoConfig?.extra?.apiUrl ??
 
-const api_server = Constants.expoConfig?.extra?.apiServer ?? "";
+export const fetchTravelData = async (resort: Resort): Promise<TravelTimes> => {
+console.log(resort)
+  const response = await axios.get(`${api_server}/canyon_times/times`, {
+    params: { resort_id: resort.id },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  console.log(response.data)
+  return response.data;
+};
 
-export const fetchLocations = async (location: string): Promise<LocationData[]> => {
-  const token =  Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/index`, {
-    params: { location },
+export const fetchDirections = async (resort: Resort): Promise<GoogleDirectionsResponse> => {
+  const response = await axios.get(`${api_server}/canyon_times/directions`, {
+    params: { resort_id: resort.id },
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
-export const fetchWeather = async (location: LocationData): Promise<LocationForecast> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/forecasts`, {
-    params: { lat: location.lat, long: location.lng, name: location.name },
+export const fetchCameras = async (resort: Resort): Promise<UdotCameraResponse> => {
+  const response = await axios.get(`${api_server}/canyon_times/cameras`, {
+    params: { resort_id: resort.id },
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
-export const fetchAlerts = async (lat: string, long: string): Promise<Alerts> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/alerts`, {
-    params: { lat: lat, long: long },
+export const fetchAlertsEvents = async (resort: Resort): Promise<AlertEventResponse> => {
+  const response = await axios.get(`${api_server}/canyon_times/alerts_events`, {
+    params: { resort_id: resort.id },
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
-export const fetchWatchesAndAlerts = async (lat: string, long: string): Promise<WatchesAndAlerts> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/watches_fire_alerts`, {
-    params: { lat: lat, long: long },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-};
 
-export const fetchDiscussion = async (lat: string, long: string): Promise<Discussion> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/discussion`, {
-    params: { lat: lat, long: long },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-};
-
-export const fetchHourlyWeather = async (location: LocationData): Promise<LocationHourlyForecast> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/hourly`, {
-    params: { lat: location.lat, long: location.lng, name: location.name },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-};
-
-export const fetchPeriodForecast = async (location: LocationData, period: string): Promise<ForecastPeriod> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/period`, {
-    params: { lat: location.lat, long: location.lng, name: location.name, period: period },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data.period;
-};
-
-export const fetchRadar = async (latLong: LatLong): Promise<RadarLocation> => {
-  const token = Constants.expoConfig?.extra?.apiJwtToken ?? "";
-  const response = await axios.get(`${api_server}/weather/radar`, {
-    params: { lat: latLong.lat, long: latLong.long },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-};

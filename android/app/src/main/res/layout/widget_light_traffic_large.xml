@@ -21,9 +21,23 @@
             android:shadowDy="1"
             android:shadowRadius="2"
             android:text="Brighton Resort"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />
+        <ImageView
+            android:id="@+id/refresh_button"
+            android:layout_width="wrap_content"
+            android:layout_height="29dp"
+            android:layout_alignParentStart="false"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="145dp"
+            android:layout_marginTop="7dp"
+            android:clickable="true"
+            android:contentDescription="Refresh"
+            android:focusable="true"
+            android:padding="4dp"
+            android:src="@android:drawable/ic_popup_sync" />
+
         <!-- Travel To -->
         <TextView
             android:id="@+id/to_static"
@@ -37,12 +51,12 @@
             android:shadowDy="1"
             android:shadowRadius="2"
             android:text="To:"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="italic" />
 
         <TextView
-            android:id="@+id/travel_up"
+            android:id="@+id/to_resort"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/resort_name"
@@ -54,7 +68,7 @@
             android:shadowDy="1"
             android:shadowRadius="2"
             android:text="22"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="36sp"
             android:textStyle="normal" />
 
@@ -65,13 +79,13 @@
             android:layout_below="@id/resort_name"
             android:layout_marginStart="2dp"
             android:layout_marginTop="21dp"
-            android:layout_toEndOf="@id/travel_up"
+            android:layout_toEndOf="@id/to_resort"
             android:shadowColor="#80000000"
             android:shadowDx="1"
             android:shadowDy="1"
             android:shadowRadius="2"
             android:text="mins"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="10sp"
             android:textStyle="normal" />
 
@@ -80,22 +94,22 @@
           android:id="@+id/from_static"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:layout_below="@id/travel_up"
+          android:layout_below="@id/to_resort"
           android:layout_marginTop="1dp"
           android:shadowColor="#80000000"
           android:shadowDx="1"
           android:shadowDy="1"
           android:shadowRadius="2"
           android:text="From:"
-          android:textColor="#000000"
+          android:textColor="#FFFFFF"
           android:textSize="12sp"
           android:textStyle="italic" />
 
       <TextView
-          android:id="@+id/travel_down"
+          android:id="@+id/from_resort"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:layout_below="@id/travel_up"
+          android:layout_below="@id/to_resort"
           android:layout_marginStart="10dp"
           android:layout_marginTop="-7dp"
           android:layout_toEndOf="@id/from_static"
@@ -104,7 +118,7 @@
           android:shadowDy="1"
           android:shadowRadius="2"
           android:text="24"
-          android:textColor="#000000"
+          android:textColor="#FFFFFF"
           android:textSize="36sp"
           android:textStyle="normal" />
 
@@ -112,26 +126,26 @@
           android:id="@+id/from_resort_mins"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:layout_below="@id/travel_up"
+          android:layout_below="@id/to_resort"
           android:layout_marginStart="2dp"
           android:layout_marginTop="21dp"
-          android:layout_toEndOf="@id/travel_down"
+          android:layout_toEndOf="@id/from_resort"
           android:shadowColor="#80000000"
           android:shadowDx="1"
           android:shadowDy="1"
           android:shadowRadius="2"
           android:text="mins"
-          android:textColor="#000000"
+          android:textColor="#FFFFFF"
           android:textSize="10sp"
           android:textStyle="normal" />
 
         <!-- Alerts -->
         <!-- Alerts Parking -->
         <TextView
-            android:id="@+id/alerts_parking"
+            android:id="@+id/parking"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/travel_down"
+            android:layout_below="@id/from_resort"
             android:layout_marginTop="-8dp"
             android:shadowColor="#80000000"
             android:maxWidth="108dp"
@@ -140,14 +154,16 @@
             android:shadowRadius="2"
             android:text="Parking open."
             android:layout_centerHorizontal="true"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="10sp"
             android:textStyle="italic" />
+
+        <!-- Alerts Weather and Traffic Summary -->
         <TextView
-            android:id="@+id/alerts"
+            android:id="@+id/traffic"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/alerts_parking"
+            android:layout_below="@id/parking"
             android:layout_marginTop="-2dp"
             android:shadowColor="#80000000"
             android:maxWidth="108dp"
@@ -156,24 +172,24 @@
             android:shadowRadius="2"
             android:text="Alerts none."
             android:layout_centerHorizontal="true"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="10sp"
             android:textStyle="italic" />
-
-        <!-- Alerts Weather -->
+        <!-- Alerts Weather and Traffic Summary -->
         <TextView
-            android:id="@+id/operating_hours"
+            android:id="@+id/weather"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/alerts"
-            android:layout_marginTop="2dp"
+            android:layout_below="@id/traffic"
+            android:layout_marginTop="-2dp"
             android:shadowColor="#80000000"
-            android:layout_centerHorizontal="true"
+            android:maxWidth="108dp"
             android:shadowDx="1"
             android:shadowDy="1"
             android:shadowRadius="2"
-            android:text="Hours: 9am -9pm"
-            android:textColor="#000000"
+            android:text="Sunny clear, high of 32"
+            android:layout_centerHorizontal="true"
+            android:textColor="#FFFFFF"
             android:textSize="10sp"
             android:textStyle="italic" />
 
@@ -181,7 +197,7 @@
             android:id="@+id/next_update"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/operating_hours"
+            android:layout_below="@id/traffic"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="0dp"
             android:shadowColor="#80000000"
@@ -189,7 +205,7 @@
             android:shadowDy="1"
             android:shadowRadius="2"
             android:text="next update: 3:45 mins"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="8sp"
             android:textStyle="normal" />
 

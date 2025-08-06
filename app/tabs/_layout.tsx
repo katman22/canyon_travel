@@ -1,113 +1,62 @@
-import React, {useContext} from 'react';
-import {Platform} from 'react-native';
-import {LatLongContext} from "@/components/LatLongContext";
-import {useRouter, Tabs} from 'expo-router';
-import {HapticTab} from '@/components/HapticTab';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import {Colors} from '@/constants/Colors';
-import {useColorScheme} from '@/hooks/useColorScheme';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Foundation from '@expo/vector-icons/Foundation';
 
 export default function TabLayout() {
-    const colorScheme = useColorScheme();
-    const router = useRouter();
-    const { lat, long, forecast_locale} = useContext(LatLongContext);
-
     return (
-            <Tabs
-                screenOptions={({ route }) => ({
-                    tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-                    headerShown: false,
-                    tabBarButton: HapticTab,
-                    tabBarBackground: TabBarBackground,
-                    tabBarStyle: [
-                        Platform.select({
-                            ios: {
-                                position: 'absolute',
-                            },
-                            default: {},
-                        }),
-                        // 👇 Conditionally hide tab bar on specific screens
-                        route.name === 'period-forecast' && { display: 'none' },
-                    ],
-                })}>
-                <Tabs.Screen
-                    name="index"
-                    options={{
-                        title: 'Home',
-                        tabBarStyle: {display: 'none'},
-                        tabBarIcon: () => <MaterialCommunityIcons name="weather-sunny" size={24} color="black"/>
-                    }}
-                />
-                <Tabs.Screen
-                    name="period-forecast"
-                    options={{
-                        href: null,
-                        // tabBarButton: () => null, // This also ensures no space is reserved
-                        headerShown: false,
-                    }}
-                />
-                <Tabs.Screen
-                    name="full-forecast"
-                    options={{
-                        title: 'Full Forecast',
-                        tabBarIcon: () => <MaterialCommunityIcons name="weather-partly-cloudy" size={24}
-                                                                  color="black"/>,
-                    }}
-                    listeners={{
-                    tabPress: (e) => {
-                        e.preventDefault();
+        <Tabs
+            screenOptions={({ route }) => ({
+                headerShown: false,
+                tabBarIcon: ({ color, size }) => {
+                    let iconName: keyof typeof Ionicons.glyphMap;
 
-                        if (lat && long) {
-                            router.push({
-                                pathname: '/full-forecast',
-                                params: {
-                                    lat: lat.toString(),
-                                    long: long.toString(),
-                                    forecast_locale: forecast_locale.toString()
-                                },
-                            });
-                        } else {
-                            console.log('Lat/Long not available');
-                        }
-                    },
+                    if (route.name === 'index') iconName = 'home';
+                    else if (route.name === 'settings') iconName = 'settings';
+                    else iconName = 'information-circle';
+
+                    return <Ionicons name={iconName} size={size} color={color} />;
+                },
+            })}
+        >
+            <Tabs.Screen
+                name="to_resort"
+                options={{
+                    title: 'Resort',
+                    tabBarIcon: () => (
+                        <FontAwesome5 name="skiing" size={12} color="black" />
+                    ),
                 }}
                 />
-                <Tabs.Screen
-                    name="satellite"
-                    options={{
-                        title: 'Satellite',
-                        tabBarIcon: () => (
-                            <MaterialCommunityIcons name="satellite-uplink" size={24} color="black"/>
-                        ),
-                    }}
-                    listeners={{
-                        tabPress: (e) => {
-                            e.preventDefault();
-
-                            if (lat && long) {
-                                router.push({
-                                    pathname: '/satellite',
-                                    params: {
-                                        lat: lat.toString(),
-                                        long: long.toString(),
-                                        forecast_locale: forecast_locale.toString()
-                                    },
-                                });
-                            } else {
-                                console.log('Lat/Long not available');
-                            }
-                        },
-                    }}
-                />
-                <Tabs.Screen
-                    name="radar"
-                    options={{
-                        href: null,
-                        // tabBarButton: () => null, // This also ensures no space is reserved
-                        headerShown: false,
-                    }}
-                />
-            </Tabs>
+            <Tabs.Screen
+                name="cameras"
+                options={{
+                    title: 'UDot Cameras',
+                    tabBarIcon: () => (
+                        <AntDesign name="camera" size={12} color="black" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="alerts_events"
+                options={{
+                    title: 'Travel Alerts',
+                    tabBarIcon: () => (
+                        <MaterialIcons name="taxi-alert" size={12} color="black" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="locations"
+                options={{
+                    title: 'Locations',
+                    tabBarIcon: () => (
+                        <Foundation name="target" size={12} color="black" />
+                    ),
+                }}
+            />
+        </Tabs>
     );
 }
