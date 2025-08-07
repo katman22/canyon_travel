@@ -1,15 +1,15 @@
 import {Slot} from 'expo-router';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
 import {ResortProvider} from '@/context/ResortContext';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 export default function RootLayout() {
     return (
-        <ResortProvider>
-            <SafeAreaView style={{flex: 1}}>
-                <StatusBar style="light"/>
-                <Slot/>
-            </SafeAreaView>
-        </ResortProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <ResortProvider>
+                <StatusBar style="light" />
+                <Slot />
+            </ResortProvider>
+        </GestureHandlerRootView>
     );
 }

@@ -2,42 +2,43 @@ import 'dotenv/config';
 
 export default {
     expo: {
-        name: "canyon_travel",
+        name: "Canyon Traveller",
         slug: "canyon_travel",
         scheme: "canyontravel",
         version: "1.0.0",
-        orientation: "portrait",
-        icon: "./assets/canyon_travellers_LO_v1.png",
-        userInterfaceStyle: "light",
+        // orientation: "portrait",
+        // icon: "./assets/canyon_travellers_v4.png",
+        // userInterfaceStyle: "light",
         newArchEnabled: false,
-        splash: {
-            image: "./assets/canyon_travellers_LO_v1.png",
-            resizeMode: "contain",
-            backgroundColor: "#ffffff"
-        },
-        ios: {
-            supportsTablet: false,
-            bundleIdentifier: "com.wharepumanawa.canyontravel"
-        },
-        android: {
-            icon: "./assets/canyon_travellers_LO_v1.png",
-            adaptiveIcon: {
-                foregroundImage: "./assets/canyon_travellers_LO_v1.png",
-                backgroundColor: "#ffffff"
-            },
-            edgeToEdgeEnabled: false,
-            package: "com.wharepumanawa.canyon_travel",
-            config: {
-                googleMaps: {
-                    apiKey: 'AIzaSyALGiMGxmRvVA84ADB7GqQKzqPpQ7S6Pzc'
-                }
-            }
-        },
-        web: {
-            favicon: "./assets/canyon_travellers_LO_v1.png"
-        },
+        // splash: {
+        //     image: "./assets/canyon_travellers_v4.png",
+        //     resizeMode: "contain",
+        //     backgroundColor: "#ffffff"
+        // },
+        // ios: {
+        //     supportsTablet: false,
+        //     bundleIdentifier: "com.wharepumanawa.canyontravel"
+        // },
+        // android: {
+        //     icon: "./assets/canyon_travellers_v4.png",
+        //     adaptiveIcon: {
+        //         foregroundImage: "./assets/canyon_travellers_v4.png",
+        //         backgroundColor: "#ffffff"
+        //     },
+        //     edgeToEdgeEnabled: false,
+        //     package: "com.wharepumanawa.canyon_travel",
+        //     config: {
+        //         googleMaps: {
+        //             apiKey: 'AIzaSyALGiMGxmRvVA84ADB7GqQKzqPpQ7S6Pzc'
+        //         }
+        //     }
+        // },
+        // web: {
+        //     favicon: "./assets/canyon_travellers_v4.png"
+        // },
         plugins: [
-            "expo-router"
+            "expo-router",
+            "react-native-reanimated/plugin"
         ],
         extra: {
             router: {},

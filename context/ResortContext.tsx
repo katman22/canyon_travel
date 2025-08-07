@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RESORTS, Resort, ResortId } from './ResortListContext';
-import SharedPreferences from 'react-native-shared-preferences';
 import { NativeModules, Platform } from 'react-native';
 const STORAGE_KEY = 'SELECTED_RESORT';
 
@@ -31,7 +30,7 @@ export const ResortProvider = ({ children }: { children: React.ReactNode }) => {
 
     const selectResort = async (id: ResortId) => {
         await AsyncStorage.setItem(STORAGE_KEY, id);
-        SharedPreferences.setItem('SELECTED_RESORT', id);
+        NativeModules.WidgetUpdater?.saveResortToPrefs?.(id);
         if (Platform.OS === 'android') {
             NativeModules.WidgetUpdater?.updateWidgets?.();
         }
