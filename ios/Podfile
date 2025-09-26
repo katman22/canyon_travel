@@ -2,6 +2,15 @@ require File.join(File.dirname(`node --print "require.resolve('expo/package.json
 require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
 
 require 'json'
+require 'xcodeproj'
+begin
+  # Teach older xcodeproj about Xcode 16’s project format
+  Xcodeproj::Constants::PROJECT_OBJECT_VERSION_TO_COMPATIBILITY_VERSION[70] ||= 'Xcode 16.0'
+  Xcodeproj::Constants::COMPATIBILITY_VERSION_TO_PROJECT_OBJECT_VERSION['Xcode 16.0'] ||= 70
+rescue => e
+  Pod::UI.puts "xcodeproj 70 patch skipped: #{e}"
+end
+
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
 
 ENV['RCT_NEW_ARCH_ENABLED'] = '0' if podfile_properties['newArchEnabled'] == 'false'
@@ -13,7 +22,7 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-target 'canyontravel' do
+target 'CanyonTraveller' do
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
@@ -29,6 +38,9 @@ target 'canyontravel' do
     ]
   end
 
+# @generated begin react-native-maps - expo prebuild (DO NOT MODIFY) sync-e9cc66c360abe50bc66d89fffb3c55b034d7d369
+  pod 'react-native-google-maps', path: File.dirname(`node --print "require.resolve('react-native-maps/package.json')"`)
+# @generated end react-native-maps
   config = use_native_modules!(config_command)
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']

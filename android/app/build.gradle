@@ -80,21 +80,27 @@ def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInRelea
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
-
+def LOCAL  = "http://192.168.11.61:3000/api/v1/canyon_times/"
+def REMOTE = "https://pumanawa-kam.onrender.com/api/v1/canyon_times/"
 android {
     ndkVersion rootProject.ext.ndkVersion
-
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace 'com.wharepumanawa.canyon_travel'
+
     defaultConfig {
         applicationId 'com.wharepumanawa.canyon_travel'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0.0"
+        versionName "2"
+
+        // Safe defaults (string literals!)
+        buildConfigField "String", "API_BASE", "\"https://pumanawa-kam.onrender.com/api/v1/canyon_times/\""
+        buildConfigField "String", "API_TOKEN", "\"eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc\""
     }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -103,20 +109,34 @@ android {
             keyPassword 'android'
         }
     }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+
+            // Pull from env or gradle.properties, else fall back to explicit literals
+            def dbgApiBase  = System.getenv("CT_API_BASE") ?: (project.findProperty("CT_API_BASE") ?: LOCAL)
+            def dbgApiToken = System.getenv("CT_API_TOKEN") ?: (project.findProperty("CT_API_TOKEN") ?: "eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc")
+
+            buildConfigField "String", "API_BASE", "\"${dbgApiBase}\""
+            buildConfigField "String", "API_TOKEN", "\"${dbgApiToken}\""
         }
+
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
-            minifyEnabled enableProguardInReleaseBuilds
+            minifyEnabled (findProperty('android.enableProguardInReleaseBuilds')?.toBoolean() ?: false)
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             crunchPngs (findProperty('android.enablePngCrunchInReleaseBuilds')?.toBoolean() ?: true)
+
+            def relApiBase  = System.getenv("CT_API_BASE") ?: (project.findProperty("CT_API_BASE") ?: REMOTE)
+            def relApiToken = System.getenv("CT_API_TOKEN") ?: (project.findProperty("CT_API_TOKEN") ?: "eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc")
+
+            buildConfigField "String", "API_BASE", "\"${relApiBase}\""
+            buildConfigField "String", "API_TOKEN", "\"${relApiToken}\""
         }
     }
+
     packagingOptions {
         jniLibs {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
@@ -127,30 +147,11 @@ android {
     }
 }
 
-// Apply static values from `gradle.properties` to the `android.packagingOptions`
-// Accepts values in comma delimited lists, example:
-// android.packagingOptions.pickFirsts=/LICENSE,**/picasa.ini
-["pickFirsts", "excludes", "merges", "doNotStrip"].each { prop ->
-    // Split option: 'foo,bar' -> ['foo', 'bar']
-    def options = (findProperty("android.packagingOptions.$prop") ?: "").split(",");
-    // Trim all elements in place.
-    for (i in 0..<options.size()) options[i] = options[i].trim();
-    // `[] - ""` is essentially `[""].filter(Boolean)` removing all empty strings.
-    options -= ""
-
-    if (options.length > 0) {
-        println "android.packagingOptions.$prop += $options ($options.length)"
-        // Ex: android.packagingOptions.pickFirsts += '**/SCCS/**'
-        options.each {
-            android.packagingOptions[prop] += it
-        }
-    }
-}
-
 dependencies {
+    implementation "io.github.hyochan.openiap:openiap-google:1.1.12"
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-
+    implementation "androidx.work:work-runtime-ktx:2.9.0"
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
     def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true";

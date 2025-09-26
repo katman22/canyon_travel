@@ -1,52 +1,90 @@
+// app.config.js
 import 'dotenv/config';
 
 export default {
     expo: {
         name: "Canyon Traveller",
-        slug: "canyon_travel",
-        scheme: "canyontravel",
-        version: "1.0.0",
-        // orientation: "portrait",
-        // icon: "./assets/canyon_travellers_v4.png",
-        // userInterfaceStyle: "light",
+        slug: 'canyon_travel',
+        scheme: 'canyontravel',
+        orientation: 'default',
+        icon: './assets/canyon_travellers_v4.png',
+        userInterfaceStyle: 'light',
         newArchEnabled: false,
-        // splash: {
-        //     image: "./assets/canyon_travellers_v4.png",
-        //     resizeMode: "contain",
-        //     backgroundColor: "#ffffff"
-        // },
-        // ios: {
-        //     supportsTablet: false,
-        //     bundleIdentifier: "com.wharepumanawa.canyontravel"
-        // },
-        // android: {
-        //     icon: "./assets/canyon_travellers_v4.png",
-        //     adaptiveIcon: {
-        //         foregroundImage: "./assets/canyon_travellers_v4.png",
-        //         backgroundColor: "#ffffff"
-        //     },
-        //     edgeToEdgeEnabled: false,
-        //     package: "com.wharepumanawa.canyon_travel",
-        //     config: {
-        //         googleMaps: {
-        //             apiKey: 'AIzaSyALGiMGxmRvVA84ADB7GqQKzqPpQ7S6Pzc'
-        //         }
-        //     }
-        // },
-        // web: {
-        //     favicon: "./assets/canyon_travellers_v4.png"
-        // },
+        splash: {
+            image: "./assets/canyon_travellers_v4.png",
+            resizeMode: "contain",
+            backgroundColor: "#ffffff",
+            dark: {
+                image: './assets/canyon_travellers_v4.png',
+                resizeMode: 'contain',
+                backgroundColor: '#000000'
+            }
+        },
+        ios: {
+            supportsTablet: false,
+            bundleIdentifier: "com.wharepumanawa.canyontravel",
+            userInterfaceStyle: 'light',
+            buildNumber: '7',
+            config: {
+                googleMapsApiKey: "AIzaSyBifu6VZKsaLr03cGLKt6sfsQEHpPnU_nU"
+            },
+            infoPlist: {
+                NSAppTransportSecurity: {
+                    NSAllowsArbitraryLoads: true,
+                    NSExceptionDomains: {
+                        "localhost": {
+                            NSTemporaryExceptionAllowsInsecureHTTPLoads: true,
+                            NSTemporaryExceptionAllowsInsecureHTTPLoads_TransferOnly: true
+                        },
+                        "192.168.11.61": {NSTemporaryExceptionAllowsInsecureHTTPLoads: true}
+                    }
+                }
+            }
+        },
+        android: {
+            icon: "./assets/canyon_travellers_v4.png",
+            adaptiveIcon: {
+                foregroundImage: "./assets/canyon_travellers_v4.png",
+                backgroundColor: "#ffffff"
+            },
+            edgeToEdgeEnabled: true,
+            userInterfaceStyle: 'light',
+            package: "com.wharepumanawa.canyon_travel",
+            config: {
+                googleMaps: {
+                    apiKey: process.env.GOOGLE_MAPS_API_KEY
+                }
+            },
+            permissions: [
+                "com.google.android.gms.permission.AD_ID"
+            ]
+        },
+        web: {
+            favicon: "./assets/canyon_travellers_v4.png"
+        },
         plugins: [
-            "expo-router",
-            "react-native-reanimated/plugin"
+            "expo-router", "expo-font", "react-native-iap",
+            [
+                "react-native-google-mobile-ads",
+                {
+                    androidAppId: "ca-app-pub-6336863096491370~8630432238",
+                    iosAppId:    "ca-app-pub-6336863096491370~8008481671",
+                }
+            ]
         ],
         extra: {
             router: {},
             eas: {
                 projectId: "2d0b1c29-5c9b-441e-98f0-2da0618edaea"
             },
-            apiUrl: 'http://192.168.11.60:3000/api/v1',
-            apiJwtToken: 'eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc',
+            reactNativeGoogleMobileAds: {
+                android_app_id: "ca-app-pub-6336863096491370~8630432238",
+                ios_app_id: "ca-app-pub-6336863096491370~8008481671",
+                userTrackingUsageDescription:
+                    "This identifier will be used to deliver personalized ads."
+            },
+            apiUrl: process.env.API_URL ?? "https://pumanawa-kam.onrender.com/api/v1",
+            apiJwtToken: process.env.API_JWT_TOKEN,
             easSkipAutoFingerprint: 1
         }
     }

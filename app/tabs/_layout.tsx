@@ -3,9 +3,14 @@ import { Ionicons } from '@expo/vector-icons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import Foundation from '@expo/vector-icons/Foundation';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import {useTheme} from "@react-navigation/native";
+import mobileAds from 'react-native-google-mobile-ads';
 
 export default function TabLayout() {
+    const { colors } = useTheme();
+    const ads = mobileAds();
+
     return (
         <Tabs
             screenOptions={({ route }) => ({
@@ -24,36 +29,54 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="to_resort"
                 options={{
-                    title: 'Resort',
+                    title: 'Home',
                     tabBarIcon: () => (
-                        <FontAwesome5 name="skiing" size={12} color="black" />
+                        <FontAwesome5 name="skiing" size={18} color={colors.text} />
                     ),
                 }}
                 />
             <Tabs.Screen
                 name="cameras"
                 options={{
-                    title: 'UDot Cameras',
+                    title: 'Cameras',
                     tabBarIcon: () => (
-                        <AntDesign name="camera" size={12} color="black" />
+                        <AntDesign name="camera" size={18} color={colors.text} />
                     ),
                 }}
             />
             <Tabs.Screen
                 name="alerts_events"
                 options={{
-                    title: 'Travel Alerts',
+                    title: 'Alerts',
                     tabBarIcon: () => (
-                        <MaterialIcons name="taxi-alert" size={12} color="black" />
+                        <MaterialIcons name="taxi-alert" size={18} color={colors.text} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+            name="weather"
+            options={{
+                title: 'Weather',
+                tabBarIcon: () => (
+                    <MaterialCommunityIcons name="weather-lightning-rainy" size={18} color={colors.text} />
+                ),
+            }}
+            />
+            <Tabs.Screen
+                name="parking"
+                options={{
+                    title: 'Activities',
+                    tabBarIcon: () => (
+                        <AntDesign name="infocirlce" size={18} color={colors.text} />
                     ),
                 }}
             />
             <Tabs.Screen
                 name="locations"
                 options={{
-                    title: 'Locations',
+                    title: 'Resorts',
                     tabBarIcon: () => (
-                        <Foundation name="target" size={12} color="black" />
+                        <MaterialCommunityIcons name="home-search-outline" size={18} color={colors.text} />
                     ),
                 }}
             />
