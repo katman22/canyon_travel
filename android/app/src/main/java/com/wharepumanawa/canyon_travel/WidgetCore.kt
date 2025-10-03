@@ -12,12 +12,15 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 object WidgetCore {
     const val PREFS = "MyAppPrefs"
+    private const val TAG = "CanyonWidget"
+
     fun keyFor(widgetId: Int) = "WIDGET_RESORT_$widgetId"
 
-    // Build once from BuildConfig
+    // Build once from BuildConfig (tolerate trailing slash in env)
     private val apiUrlBase = BuildConfig.API_BASE.trimEnd('/')
     private val bearerToken = "Bearer ${BuildConfig.API_TOKEN}"
 
@@ -74,6 +77,8 @@ object WidgetCore {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val selectedResort = prefs.getString(keyFor(appWidgetId), null)
 
+        Log.d(TAG, "appWidgetId=$appWidgetId selectedResort=$selectedResort")
+
         if (selectedResort.isNullOrBlank()) {
             // Prompt state
             withContext(Dispatchers.Main) {
@@ -85,7 +90,13 @@ object WidgetCore {
             return
         }
 
-        val fullUrl = "$apiUrlBase/travel_times?resort_id=$selectedResort"
+        val encodedId = URLEncoder.encode(selectedResort, "UTF-8")
+        val fullUrl = "$apiUrlBase/travel_times?resort_id=$encodedId"
+
+        Log.d(TAG, "API_BASE=$apiUrlBase")
+        Log.d(TAG, "Fetch URL=$fullUrl")
+        Log.d(TAG, "Token(head)=${bearerToken.take(18)}… len=${bearerToken.length}")
+
         val conn = (URL(fullUrl).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 8000
@@ -97,8 +108,11 @@ object WidgetCore {
 
         try {
             val code = conn.responseCode
+            Log.d(TAG, "HTTP code=$code for $fullUrl")
+
             if (code in 200..299) {
                 val json = conn.inputStream.bufferedReader().use { it.readText() }
+                Log.d(TAG, "Body=${json.take(200)}")
                 val data = parseData(JSONObject(json))
 
                 withContext(Dispatchers.Main) {
@@ -108,14 +122,22 @@ object WidgetCore {
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             } else {
-                val err = conn.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("CanyonWidget", "HTTP $code: $fullUrl — $err")
+                val errBody = conn.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e(TAG, "HTTP $code: $fullUrl — $errBody")
                 withContext(Dispatchers.Main) {
                     views.setTextViewText(R.id.resort_name, "Error loading")
                     views.setTextViewText(R.id.to_resort, "--")
                     views.setTextViewText(R.id.from_resort, "Tap to retry")
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Request failed for $fullUrl", e)
+            withContext(Dispatchers.Main) {
+                views.setTextViewText(R.id.resort_name, "Network error")
+                views.setTextViewText(R.id.to_resort, "--")
+                views.setTextViewText(R.id.from_resort, "Tap to retry")
+                appWidgetManager.updateAppWidget(appWidgetId, views)
             }
         } finally {
             conn.disconnect()
@@ -124,7 +146,7 @@ object WidgetCore {
 
     private fun parseData(json: JSONObject): CanyonData {
         val resort     = json.optString("resort", "—")
-        val toResort   = json.optString("to_resort", "--")       // API now returns strings
+        val toResort   = json.optString("to_resort", "--") // API returns strings
         val fromResort = json.optString("from_resort", "--")
         return CanyonData(resort, toResort, fromResort)
     }
@@ -133,8 +155,7 @@ object WidgetCore {
     fun refreshAll(context: Context, providerClass: Class<*>, action: String) {
         val mgr = AppWidgetManager.getInstance(context)
         val ids = mgr.getAppWidgetIds(ComponentName(context, providerClass))
-        ids.forEach { id ->
-            // fire a broadcast per widget so provider.onReceive triggers update
+        ids.forEach { _ ->
             val i = Intent(context, providerClass).apply { this.action = action }
             context.sendBroadcast(i)
         }

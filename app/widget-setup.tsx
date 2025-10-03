@@ -18,6 +18,8 @@ import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
 import { saveWidgetResortForIOS, reloadWidgetsIOS } from '@/native/WidgetUpdater.ios';
 
+
+
 export default function WidgetSetupScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{ widgetId?: string }>();
@@ -52,6 +54,7 @@ export default function WidgetSetupScreen() {
             reloadWidgetsIOS();
             await selectResort(resort);
         } else {
+            console.log('We are here');
                 if (Number.isFinite(widgetId)){
             await saveWidgetResortForId(widgetId, String(resort.resort_id));
             await selectResort(resort);}

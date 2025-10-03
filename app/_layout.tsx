@@ -6,13 +6,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from '@react-navigation/native';
 import { ResortProvider } from '@/context/ResortContext';
+import { FontAvailabilityProvider } from '@/context/FontAvailability';
 import { LightNavTheme } from '@/constants/palette';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Platform } from 'react-native';
 import mobileAds from "react-native-google-mobile-ads";
+import { useOrbitronFont } from '@/hooks/useObitronFont';
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function ThemedStatusBar() {
@@ -21,14 +23,14 @@ function ThemedStatusBar() {
 }
 
 export default function RootLayout() {
-
+    const { ready, orbitronAvailable } = useOrbitronFont();
     React.useEffect(() => {
         const bg =
             Platform.OS === 'android' && Platform.Version < 26
                 ? '#f2f2f2' // fallback: older Android can't show dark icons; avoid white-on-white
                 : '#ffffff';
 
-        NavigationBar.setBackgroundColorAsync(bg).then();
+        Platform.OS === 'android' ? NavigationBar.setBackgroundColorAsync(bg).then() : "";
         if (Number(Platform.Version) >= 26) {
             // dark icons on light background
             NavigationBar.setButtonStyleAsync('dark').then();
@@ -56,18 +58,9 @@ export default function RootLayout() {
             });
     }, []);
 
-    const [fontsLoaded] = useFonts({
-        Orbitron: require('../assets/fonts/Orbitron-VariableFont_wght.ttf'),
-        'Orbitron-Bold': require('../assets/fonts/Orbitron-VariableFont_wght.ttf'),
-    });
-
-    useEffect(() => {
-        if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
-    }, [fontsLoaded]);
-
-    if (!fontsLoaded) return null;
 
     return (
+        <FontAvailabilityProvider orbitronAvailable={orbitronAvailable}>
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeProvider value={LightNavTheme}>
                 <ResortProvider>
@@ -76,5 +69,6 @@ export default function RootLayout() {
                 </ResortProvider>
             </ThemeProvider>
         </GestureHandlerRootView>
+        </FontAvailabilityProvider>
     );
 }

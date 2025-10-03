@@ -16,7 +16,6 @@ import {AlertsEvents, SignResponse} from "@/constants/types";
 import SignDisplay from "@/components/SignDisplay";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
 import Header from "@/components/Header";

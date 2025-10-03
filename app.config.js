@@ -63,7 +63,7 @@ export default {
             favicon: "./assets/canyon_travellers_v4.png"
         },
         plugins: [
-            "expo-router", "expo-font", "react-native-iap",
+            "expo-router", "expo-font", "expo-asset", "react-native-iap",
             [
                 "react-native-google-mobile-ads",
                 {

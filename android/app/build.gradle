@@ -80,8 +80,9 @@ def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInRelea
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
-def LOCAL  = "http://192.168.11.61:3000/api/v1/canyon_times/"
-def REMOTE = "https://pumanawa-kam.onrender.com/api/v1/canyon_times/"
+// def LOCAL  = "http://192.168.11.61:3000/api/v1/canyon_travel"
+def LOCAL  = "https://pumanawa-kam.onrender.com/api/v1/canyon_times"
+def REMOTE = "https://pumanawa-kam.onrender.com/api/v1/canyon_times"
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -97,7 +98,7 @@ android {
         versionName "2"
 
         // Safe defaults (string literals!)
-        buildConfigField "String", "API_BASE", "\"https://pumanawa-kam.onrender.com/api/v1/canyon_times/\""
+        buildConfigField "String", "API_BASE", "\"https://pumanawa-kam.onrender.com/api/v1/canyon_times\""
         buildConfigField "String", "API_TOKEN", "\"eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc\""
     }
 
