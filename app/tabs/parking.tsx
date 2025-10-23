@@ -26,6 +26,11 @@ import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
 import Header from "@/components/Header";
 import BannerHeaderAd from "@/components/BannerHeaderAd";
+import YouTubeTileBlockedPlayer from "@/components/YouTubeTileBlockedPlayer";
+import {router} from "expo-router";
+import {useSubscription} from "@/context/SubscriptionContext";
+import FloatingSettingsButton from "@/components/FloatingSettingsButton";
+import {useEffectiveAccess} from "@/hooks/useEffectiveAccess";
 
 export default function Parking() {
     const [loading, setLoading] = useState(false);
@@ -41,7 +46,8 @@ export default function Parking() {
 
     const sheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['30%', '100%'], []);
-
+    const { isSubscribed } = useSubscription();
+    const { canUseSub } = useEffectiveAccess(resort?.resort_id, isSubscribed);
     const dateOpts: Intl.DateTimeFormatOptions = {
         month: "short",
         day: "numeric",
@@ -102,6 +108,9 @@ export default function Parking() {
                 resizeMode="cover"
                 imageStyle={{opacity: .75}} // soften for readability
             />
+
+            <FloatingSettingsButton />
+
             <BottomSheet
                 ref={sheetRef}
                 index={snapPoints.length - 1}
@@ -121,15 +130,27 @@ export default function Parking() {
                         {travelData && (
 
                             <View key={23}>
-
-                                {camerasParking.map((parkCam, i) => (
-                                    <YouTubeTile
-                                        key={`yt-sub-${String(parkCam.Id)}-${i}`}
-                                        title={parkCam.Location}
-                                        streamId={String(parkCam.Id)}
-                                        description={parkCam.Location}
-                                    />
-                                ))}
+                                {(camerasParking ?? []).map((parkCam, i) =>
+                                    canUseSub ? (
+                                        <YouTubeTile
+                                            key={`yt-sub-${String(parkCam.Id)}-${i}`}
+                                            title={parkCam.Location}
+                                            streamId={String(parkCam.Id)}
+                                            description={parkCam.Location}
+                                        />
+                                    ) : (
+                                        <YouTubeTileBlockedPlayer
+                                            key={`yt-${String(parkCam.Id)}-${i}`}
+                                            title={parkCam.Location}
+                                            streamId={String(parkCam.Id)}
+                                            description={parkCam.Location}
+                                            previewSeconds={30}
+                                            showRefresh={false}
+                                            ctaLabel="Subscribe for the full stream"
+                                            onPressCTA={() => router.replace("/tabs/rc_subscriptions")}
+                                        />
+                                    )
+                                )}
                                 <ParkingHours parking={travelData?.parking}/>
                                 {/* RULES */}
                                 <ParkingRules rules={profile?.rules} title="Parking Rules"/>

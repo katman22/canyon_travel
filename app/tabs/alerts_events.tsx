@@ -20,8 +20,14 @@ import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
 import Header from "@/components/Header";
 import BannerHeaderAd from "@/components/BannerHeaderAd";
+import ConditionsEventsBlock from "@/components/ConditionsEventsBlock";
+import {router} from "expo-router";
+import {useSubscription} from "@/context/SubscriptionContext";
+import FloatingSettingsButton from "@/components/FloatingSettingsButton";
+import {useEffectiveAccess} from "@/hooks/useEffectiveAccess";
 
-export default function Cameras() {
+export default function Alerts_events() {
+    const { isSubscribed } = useSubscription();
     const [loading, setLoading] = useState(false);
     const {colors} = useTheme();
     const styles = getStyles(colors);
@@ -33,6 +39,11 @@ export default function Cameras() {
     const {progress, reset, next} = useStepProgress(4);
     const sheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['30%', '95%'], []);
+    const { canUseSub } = useEffectiveAccess(resort?.resort_id, isSubscribed);
+
+    const getSubs = async () => {
+        router.replace('/tabs/rc_subscriptions');
+    };
 
     const fetchAlertsAndEvents = async () => {
         if (!resort) {
@@ -81,6 +92,8 @@ export default function Cameras() {
                 resizeMode="cover"
                 imageStyle={{opacity: .75}} // soften for readability
             />
+
+            <FloatingSettingsButton />
             {/* Your background layer (map, image, etc.) can sit behind the sheet */}
             <View style={{flex: 1}}>
                 <BottomSheet
@@ -119,33 +132,13 @@ export default function Cameras() {
                             ) : (
                                 <Text style={styles.noAlertText}>✅ No alerts reported.</Text>
                             )}
-                            <View style={styles.conditionsSection}>
-                                {alertsEvents && alertsEvents.conditions.map((cond) => (
-                                    <View key={cond.Id} style={styles.conditionCard}>
-                                        <Text style={styles.roadName}>{cond.RoadwayName}</Text>
-                                        <Text style={styles.conditionText}>Road: {cond.RoadCondition}</Text>
-                                        <Text style={styles.conditionText}>Weather: {cond.WeatherCondition}</Text>
-                                        <Text style={styles.conditionText}>Restriction: {cond.Restriction}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                            <View style={styles.eventSection}>
-                                {alertsEvents && alertsEvents.events.map((event, index) => (
-                                    <View key={index} style={styles.eventCard}>
-                                        <Text style={styles.eventHeader}>
-                                            🚧 {event.EventCategory} — {event.Location}
-                                        </Text>
-                                        <Text style={styles.eventDescription}>{event.Description}</Text>
-                                        <Text style={styles.eventComment}>{event.Comment}</Text>
-                                        <Text style={styles.eventMeta}>
-                                            MP: {event.MPStart} to {event.MPEnd}
-                                        </Text>
-                                        {event.IsFullClosure && (
-                                            <Text style={styles.closure}>🚫 Full road closure in effect</Text>
-                                        )}
-                                    </View>
-                                ))}
-                            </View>
+                            <ConditionsEventsBlock
+                                data={alertsEvents}
+                                isSubscribed={canUseSub}
+                                showAll={false}               // or true, if you want to reveal everything for subs
+                                onPressSubscribe={getSubs}
+                                styles={styles}
+                            />
                             <Text style={{fontSize: 14, fontWeight: "bold"}}>
                                 OverHead Message Signs:
                             </Text>

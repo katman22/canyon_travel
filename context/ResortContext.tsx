@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { waitForInternet } from '@/lib/network';
 
 const STORAGE_KEY = 'SELECTED_RESORT_ID';
-const RESORTS_CACHE_KEY = 'RESORTS_LAST_GOOD';
+// const RESORTS_CACHE_KEY = 'RESORTS_LAST_GOOD';
 
 type ResortContextType = {
     resort: Resort | null;
@@ -32,42 +32,27 @@ export const ResortProvider = ({ children }: { children: React.ReactNode }) => {
     const loadSelectionFromStorage = async (fetched: Resort[]) => {
         const storedId = await AsyncStorage.getItem(STORAGE_KEY);
         if (!storedId) return;
-        const found = fetched.find(r => r.resort_id === storedId);
+        const found = fetched.find(r => String(r.resort_id) === storedId);
         if (found) setResort(found);
     };
 
     const loadResorts = async () => {
         setRefreshing(true);
         try {
-            console.log("first run");
-            // 1) do not hammer while iOS networking is waking up (harmless on Android)
             await waitForInternet(12000);
-
-            const { resorts } = await fetchResorts(); // your existing API fn
+            const { resorts } = await fetchResorts();
             const list = resorts ?? [];
-
             setAllResorts(list);
-            await AsyncStorage.setItem(RESORTS_CACHE_KEY, JSON.stringify(list));
             await loadSelectionFromStorage(list);
+
         } catch (e) {
-            // 2) if fetch fails and state is empty, try cache so UI isn’t blank
-            console.log("second run");
-            if (!allResorts || allResorts.length === 0) {
-                const cached = await AsyncStorage.getItem(RESORTS_CACHE_KEY);
-                if (cached) {
-                    try {
-                        console.log("loading cache");
-                        const list: Resort[] = JSON.parse(cached);
-                        setAllResorts(list);
-                        await loadSelectionFromStorage(list);
-                    } catch {}
-                }
-            }
-            // NOTE: we purposely do NOT clear allResorts on error
+            // If fetch fails, leave existing list on screen; don't repopulate from cache
+            console.log("loadResorts failed:", e);
         } finally {
             setRefreshing(false);
         }
     };
+
 
     const refreshResorts = async () => {
         // Keep the same behavior screens expect; just calls the hardened loader
@@ -75,8 +60,8 @@ export const ResortProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const selectResort = async (selected: Resort) => {
-        await AsyncStorage.setItem(STORAGE_KEY, selected.resort_id);
-        NativeModules.WidgetUpdater?.saveResortToPrefs?.(selected.resort_id);
+        await AsyncStorage.setItem(STORAGE_KEY, String(selected.resort_id));
+        NativeModules.WidgetUpdater?.saveResortToPrefs?.(String(selected.resort_id));
         if (Platform.OS === 'android') {
             NativeModules.WidgetUpdater?.updateWidgets?.();
         }
@@ -86,17 +71,7 @@ export const ResortProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         (async () => {
             try {
-                // On first mount, try cache immediately for instant UI, then refresh
-                const cached = await AsyncStorage.getItem(RESORTS_CACHE_KEY);
-                if (cached) {
-                    try {
-                        const list: Resort[] = JSON.parse(cached);
-                        if (list?.length) {
-                            setAllResorts(list);
-                            await loadSelectionFromStorage(list);
-                        }
-                    } catch {}
-                }
+                // no prefill from RESORTS_CACHE_KEY
                 await loadResorts();
             } finally {
                 setLoading(false);
@@ -104,10 +79,10 @@ export const ResortProvider = ({ children }: { children: React.ReactNode }) => {
         })();
     }, []);
 
-    const handleResortSelection = async (resort: Resort) => {
-        await selectResort(resort);
+    const handleResortSelection = React.useCallback(async (res: Resort) => {
+        await selectResort(res);
         router.replace('/tabs/to_resort');
-    };
+    }, [selectResort, router]);
 
     const value = useMemo(
         () => ({
@@ -119,7 +94,7 @@ export const ResortProvider = ({ children }: { children: React.ReactNode }) => {
             refreshResorts,
             handleResortSelection
         }),
-        [resort, allResorts, loading, refreshing, handleResortSelection]
+        [resort, allResorts, loading, refreshing, selectResort, refreshResorts, handleResortSelection]
     );
 
     return <ResortContext.Provider value={value}>{children}</ResortContext.Provider>;

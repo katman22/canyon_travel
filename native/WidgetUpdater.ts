@@ -15,7 +15,6 @@ const native = (Platform.OS === 'android' ? (NativeModules as any).WidgetUpdater
     | undefined;
 
 export async function saveWidgetResortForId(widgetId: number, resortId: string) {
-  console.log("So we are about to save the resort...")
   if (Platform.OS !== 'android' || !native?.saveResortForWidget) {
     console.warn('[WidgetUpdater] unavailable');
     return;

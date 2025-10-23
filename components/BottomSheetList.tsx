@@ -7,7 +7,7 @@ import {
     View,
     Text,
     TouchableOpacity,
-    StatusBar,
+    StatusBar, Image,
 } from 'react-native';
 import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import {useTheme} from '@react-navigation/native';
@@ -116,12 +116,16 @@ function InnerBottomSheetList<T>(
     const [bannerH, setBannerH] = React.useState(0);
 
     const defaultHeader = (
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 20}}>
             <Text style={{fontWeight: 'bold', fontSize: 18, color: colors.text}}>
                 Choose Your Resort:
             </Text>
             <TouchableOpacity onPress={refreshResorts} style={{marginLeft: 12}}>
-                <MaterialIcons name="refresh" size={20} color={colors.text}/>
+                <Image
+                    source={require("@/assets/refresh.png")}
+                    style={{ width: 30, height: 30, marginLeft: 150}}
+                    resizeMode="contain"
+                />
             </TouchableOpacity>
         </View>
     );

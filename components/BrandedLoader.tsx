@@ -32,7 +32,7 @@ export default function BrandedLoader({ progress, message }: Props) {
             />
             <View style={styles.overlay}>
                 <View style={styles.card}>
-                    <Text style={styles.title}>Canyon Traveller</Text>
+                    <Text style={styles.title}>Canyon Travelers</Text>
                     <View style={styles.barOuter}>
                         <Animated.View style={[styles.barInner, { width }]} />
                     </View>

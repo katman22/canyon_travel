@@ -66,6 +66,24 @@ export const fetchTravelData = async (resort: Resort): Promise<TravelTimes> => {
   throw new Error(`HTTP ${res.status} /canyon_times/times`);
 };
 
+export const fetchTravelDataTo = async (resort: Resort): Promise<TravelTimes> => {
+
+  const res = await http.get("/canyon_times/times", {
+    params: { resort_id: resort.resort_id, _: Date.now(), type: "to" },
+  });
+  if (res.status >= 200 && res.status < 300) return res.data;
+  throw new Error(`HTTP ${res.status} /canyon_times/times`);
+};
+
+export const fetchTravelDataFrom = async (resort: Resort): Promise<TravelTimes> => {
+
+  const res = await http.get("/canyon_times/times", {
+    params: { resort_id: resort.resort_id, _: Date.now(), type: "from" },
+  });
+  if (res.status >= 200 && res.status < 300) return res.data;
+  throw new Error(`HTTP ${res.status} /canyon_times/times`);
+};
+
 export const fetchParkingProfile = async (resort: Resort): Promise<ParkingResponse> => {
   const res = await http.get("/canyon_times/parking_profile", {
     params: { resort_id: resort.resort_id, _: Date.now() },

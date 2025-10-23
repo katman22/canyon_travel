@@ -6,25 +6,25 @@ import {
     TouchableOpacity,
     SafeAreaView, ImageBackground, StyleSheet
 } from 'react-native';
-import {useRouter, useLocalSearchParams} from "expo-router";
+import {useRouter, useLocalSearchParams, useFocusEffect} from "expo-router";
 import {saveWidgetResortForId} from "@/native/WidgetUpdater";
 import {useSelectedResort} from '@/context/ResortContext';
 import {Resort} from "@/constants/types";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {fetchResorts} from "@/hooks/UseRemoteService";
 import BottomSheetList from "@/components/BottomSheetList";
 import BrandedLoader from "@/components/BrandedLoader";
 import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
-import { saveWidgetResortForIOS, reloadWidgetsIOS } from '@/native/WidgetUpdater.ios';
-
+import {saveWidgetResortForIOS, reloadWidgetsIOS} from '@/native/WidgetUpdater.ios';
 
 
 export default function WidgetSetupScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ widgetId?: string }>();
+    const params = useLocalSearchParams<{ widgetId?: string; source?: string }>();
     const widgetId = Number(params.widgetId ?? NaN);
-
+    const isWidgetConfig = params.source === "widget" || Number.isFinite(widgetId);
+    const didAutoRedirect = useRef(false);
     const [allResorts, setAllResorts] = useState<Resort[]>([]);
     const [loading, setLoading] = useState(false);
     const {colors} = useTheme();
@@ -32,7 +32,19 @@ export default function WidgetSetupScreen() {
     const pageBackground = colors.background;
     const {resort, refreshing, selectResort, refreshResorts} = useSelectedResort();
 
+    // Only auto-redirect when NOT doing widget setup
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!isWidgetConfig && resort && !didAutoRedirect.current) {
+                didAutoRedirect.current = true;
+                router.replace("/tabs/to_resort");
+            }
+            return () => {};
+        }, [isWidgetConfig, resort, router])
+    );
+
     useEffect(() => {
+
         let isMounted = true;           // prevent setState after unmount
         (async () => {
             try {
@@ -54,10 +66,10 @@ export default function WidgetSetupScreen() {
             reloadWidgetsIOS();
             await selectResort(resort);
         } else {
-            console.log('We are here');
-                if (Number.isFinite(widgetId)){
-            await saveWidgetResortForId(widgetId, String(resort.resort_id));
-            await selectResort(resort);}
+            if (Number.isFinite(widgetId)) {
+                await saveWidgetResortForId(widgetId, String(resort.resort_id));
+                await selectResort(resort);
+            }
         }
         if (router.canGoBack()) {
             router.back();

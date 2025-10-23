@@ -133,7 +133,9 @@ const getStyles = (colors: Theme["colors"]) => {
         conditionsSection: {marginTop: 12},
 
         container: {flex: 1, padding: 4, marginTop: 20},
-
+        settingContainer: {
+            padding: 16,
+        },
         contentContainer: {padding: 16, backgroundColor: c.background},
 
         description: {fontSize: 14, color: c.muted ?? "#555", marginBottom: 8},
@@ -173,6 +175,20 @@ const getStyles = (colors: Theme["colors"]) => {
         eventMeta: {fontSize: 12, color: c.muted ?? "#444"},
         eventSection: {marginTop: 16},
 
+        fab: {
+            position: "absolute",
+            zIndex: 20,
+            elevation: 6,         // Android shadow
+            padding: 4,
+            borderRadius: 4,
+            backgroundColor: "rgba(255,255,255,0.92)",
+        },
+        fabIcon: {
+            width: 22,
+            height: 22,
+            opacity: 0.9,
+            // tintColor: "#111", // uncomment to force color if needed
+        },
         favButton: {
             alignSelf: "flex-start",
             backgroundColor: c.background,
@@ -307,9 +323,41 @@ const getStyles = (colors: Theme["colors"]) => {
         header: {fontSize: 24, marginBottom: 20, color: c.text},
         headerIcon: {width: 80, height: 44, marginTop: -10, marginLeft: -5, resizeMode: "contain"},
         headerLogo: {padding: 5, marginTop: -37, marginRight: -110},
-
+        heading: {
+            fontSize: 18,
+            fontWeight: "700",
+            color: "#1B1B1B",
+        },
         horizontalScrollContainer: {paddingVertical: 10, paddingHorizontal: 5},
-
+        homeResWrap: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 96 },
+        homeResHeading: { fontSize: 18, fontWeight: "700", color: "#1B1B1B" },
+        homeResSubheading: { fontSize: 13, color: "#555", marginBottom: 8 },
+        homeResChangesPill: {
+            alignSelf: "flex-start",
+            backgroundColor: "#EEF7EE",
+            borderRadius: 999,
+            paddingVertical: 4,
+            paddingHorizontal: 10,
+            marginBottom: 8,
+        },
+        homeResChangesText: { color: "#2E7D32", fontWeight: "600", fontSize: 12 },
+        homeResRow: {
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 8,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderColor: "#e0e0e0",
+        },
+        homeResName: { fontWeight: "600", color: "#222" },
+        homeResSubText: { fontSize: 12, color: "#666" },
+        homeResSaveBtn: {
+            marginTop: 12,
+            backgroundColor: "#2E7D32",
+            paddingVertical: 10,
+            borderRadius: 8,
+            alignItems: "center",
+        },
+        homeResSaveText: { color: "#fff", fontWeight: "700" },
         hourlyContainer: {
             position: "relative",
             maxHeight: 280,
@@ -413,7 +461,10 @@ const getStyles = (colors: Theme["colors"]) => {
 
         noAlertText: {fontSize: 14, color: c.success ?? "green", marginBottom: 5},
         exAlertText: {fontSize: 10, color: c.success ?? "#8ec88e", marginBottom: 10},
-
+        name: {
+            fontWeight: "600",
+            color: "#222",
+        },
         nonFavorite: {color: c.border},
 
         notifyButton: {
@@ -430,6 +481,10 @@ const getStyles = (colors: Theme["colors"]) => {
         },
 
         oddRow: {backgroundColor: c.card},
+        overlay: {
+            ...StyleSheet.absoluteFillObject,
+            zIndex: 10,
+        },
 
         panelHeader: {
             fontSize: 18,
@@ -469,8 +524,53 @@ const getStyles = (colors: Theme["colors"]) => {
             marginBottom: 10,
         },
 
-        scrollContentContainer: {paddingBottom: 120},
+        rowCheck: {
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 6,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderColor: "#ccc",
+        },
 
+
+        saveBtn: {
+            marginTop: 16,
+            backgroundColor: "#2E7D32",
+            paddingVertical: 10,
+            borderRadius: 6,
+            alignItems: "center",
+        },
+        saveText: {
+            color: "#fff",
+            fontWeight: "700",
+        },
+        scrollContentContainer: {paddingBottom: 120},
+        settingsCard: {
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            padding: 12,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "#e0e0e0",
+            marginBottom: 12,
+        },
+        scrollTitle: {fontSize: 16, fontWeight: "700", color: "#111"},
+        scrollBlurb: {fontSize: 13, color: "#444", marginTop: 4, marginBottom: 10},
+        scrollRow: {flexDirection: "row", gap: 10},
+        scrollBtn: {
+            flex: 1,
+            backgroundColor: "#2E7D32",
+            borderRadius: 8,
+            paddingVertical: 10,
+            alignItems: "center",
+        },
+        scrollBtnText: {color: "#fff", fontWeight: "700"},
+        scrollBtnSecondary: {
+            backgroundColor: "#E8F5E9",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "#C8E6C9",
+        },
+        scrollBtnSecondaryText: {color: "#2E7D32", fontWeight: "700"},
+        scrollNote: {marginTop: 8, fontSize: 12, color: "#777"},
         shortContainer: {marginTop: 5, backgroundColor: c.card, borderRadius: 4},
         shortForecast: {fontSize: 14, color: c.primary, marginTop: 4},
         shortName: {fontSize: 14, color: c.text, marginLeft: 4, marginTop: 2, fontWeight: "600"},
@@ -496,12 +596,50 @@ const getStyles = (colors: Theme["colors"]) => {
             marginLeft: 10,
             marginTop: -13,
         },
-
-        styledFavorite: {color: c.primary},
-
+        statusCard: {
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            padding: 12,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "#e0e0e0",
+            marginBottom: 12,
+        },
+        statusTitle: {fontSize: 16, fontWeight: "700", color: "#111"},
+        statusTier: {fontSize: 14, fontWeight: "800", marginTop: 2, color: "#2E7D32"},
+        statusBlurb: {fontSize: 13, color: "#444", marginTop: 6},
+        statusEntitlements: {fontSize: 12, color: "#666", marginTop: 6},
+        statusRow: {flexDirection: "row", gap: 10, marginTop: 10},
+        statusBtn: {
+            flex: 1,
+            backgroundColor: "#2E7D32",
+            borderRadius: 8,
+            paddingVertical: 10,
+            alignItems: "center",
+        },
+        statusBtnText: {color: "#fff", fontWeight: "700"},
+        statusBtnSecondary: {
+            flex: 1,
+            backgroundColor: "#E8F5E9",
+            borderRadius: 8,
+            paddingVertical: 10,
+            alignItems: "center",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "#C8E6C9",
+        },
+        statusBtnSecondaryText: {color: "#2E7D32", fontWeight: "700"},
+        statusManage: {marginTop: 8, alignSelf: "flex-start"},
+        statusManageText: {color: "#1a73e8", fontWeight: "700", textDecorationLine: "underline"},
+        statusStyledFavorite: {color: c.primary},
+        subheading: {
+            fontSize: 14,
+            color: "#444",
+            marginBottom: 12,
+        },
         subHeading: {fontSize: 20, marginBottom: 0, color: c.text},
         subText: {fontSize: 14, marginBottom: 8, color: c.text},
-
+        subscriptionPlan: {color: '#000', fontSize: 26, fontWeight: "800", marginBottom: 4},
+        subscriptionDescription: {color: '#000', opacity: 0.8, marginBottom: 12},
+        subDetails: {color: '#000', marginTop: 8, opacity: 0.7},
         // Use a neutral card with a warning accent instead of a fixed yellow block
         summaryCard: {
             padding: 12,
@@ -511,11 +649,19 @@ const getStyles = (colors: Theme["colors"]) => {
             borderLeftWidth: 4,
             borderLeftColor: c.warning ?? c.primary,
         },
-        weatherCard: {
-            padding: 12,
-            backgroundColor: c.card,
-            borderRadius: 6,
-            marginBottom: 10,
+        sheetBackground: {
+            paddingVertical: 120,
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+        },
+        sheetContent: {paddingHorizontal: 10},
+        section: {marginTop: 20, fontSize: 16, fontWeight: "600", color: c.text},
+
+        text: {fontSize: 15, marginTop: 6, color: c.text},
+        textSmall: {fontSize: 13, color: c.muted ?? "#555", marginTop: 6},
+        textWrap: {
+            marginLeft: 8,
+            flex: 1,
         },
         summaryText: {fontWeight: "600", fontSize: 14, color: c.text},
 
@@ -570,7 +716,12 @@ const getStyles = (colors: Theme["colors"]) => {
         updated: {fontSize: 12, color: c.muted ?? "#777", marginTop: 8},
 
         weatherIcon: {width: 100, height: 100, marginLeft: 12},
-
+        weatherCard: {
+            padding: 12,
+            backgroundColor: c.card,
+            borderRadius: 6,
+            marginBottom: 10,
+        },
         wind: {marginTop: 5, fontSize: 14, color: c.primary},
         windColumn: {
             flexDirection: "column",
@@ -583,17 +734,6 @@ const getStyles = (colors: Theme["colors"]) => {
             width: 95
         },
 
-        sheetBackground: {
-            paddingVertical: 120,
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-        },
-        sheetContent: {paddingHorizontal: 10},
-
-        section: {marginTop: 20, fontSize: 16, fontWeight: "600", color: c.text},
-
-        text: {fontSize: 15, marginTop: 6, color: c.text},
-        textSmall: {fontSize: 13, color: c.muted ?? "#555", marginTop: 6},
 
         bold: {fontWeight: "bold"},
 

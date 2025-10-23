@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ViewStyle} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ViewStyle, Image} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import type {Theme} from '@react-navigation/native';
 
@@ -9,6 +9,7 @@ type Props = {
     onRefresh: () => void | Promise<void>;
     colors: Theme['colors'];
     style?: ViewStyle;
+    showRefresh?: boolean;
 };
 
 export default function SectionHeader({
@@ -16,7 +17,8 @@ export default function SectionHeader({
                                           resort,
                                           onRefresh,
                                           colors,
-                                          style
+                                          style,
+                                          showRefresh
                                       }: Props) {
     return (
         <View style={[styles.container, {borderBottomColor: colors.border}, style]}>
@@ -29,16 +31,21 @@ export default function SectionHeader({
                 >
                     {resort}
                 </Text>
-
-                <TouchableOpacity
-                    onPress={onRefresh}
-                    accessibilityRole="button"
-                    accessibilityLabel="Refresh"
-                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                    style={styles.refreshBtn}
-                >
-                    <MaterialIcons name="refresh" size={20} color={colors.text}/>
-                </TouchableOpacity>
+                {showRefresh && (
+                    <TouchableOpacity
+                        onPress={onRefresh}
+                        accessibilityRole="button"
+                        accessibilityLabel="Refresh"
+                        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                        style={styles.refreshBtn}
+                    >
+                        <Image
+                            source={require("@/assets/refresh.png")} // ← your PNG
+                            style={{width: 30, height: 30, marginRight: 30}}
+                            resizeMode="contain"
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
             <Text style={[styles.message, {color: colors.text}]} numberOfLines={2}>
                 {message}
