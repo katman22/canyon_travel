@@ -95,10 +95,10 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "2"
+        versionName "4"
 
         // Safe defaults (string literals!)
-        buildConfigField "String", "API_BASE", "\"https://pumanawa-kam.onrender.com/api/v1/canyon_times\""
+        buildConfigField "String", "API_BASE", "\"http://192.168.1.15:3000/api/v1/canyon_times\""
         buildConfigField "String", "API_TOKEN", "\"eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc\""
     }
 
@@ -148,6 +148,18 @@ android {
     }
 }
 
+// Tell the common gradle script which fonts to copy
+project.ext.vectoricons = [
+  iconFontNames: [
+    "AntDesign.ttf",
+    "Ionicons.ttf",
+    "MaterialIcons.ttf",
+    "FontAwesome5_Brands.ttf",
+    "FontAwesome5_Regular.ttf",
+    "FontAwesome5_Solid.ttf",
+  ]
+]
+
 dependencies {
     implementation "io.github.hyochan.openiap:openiap-google:1.1.12"
     // The version of react-native is set by the React Native Gradle Plugin
@@ -177,3 +189,4 @@ dependencies {
         implementation jscFlavor
     }
 }
+

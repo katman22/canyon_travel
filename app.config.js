@@ -6,6 +6,7 @@ export default {
         name: "Canyon Traveller",
         slug: 'canyon_travel',
         scheme: 'canyontravel',
+        version: "3",
         orientation: 'default',
         icon: './assets/canyon_travellers_v4.png',
         userInterfaceStyle: 'light',
@@ -24,16 +25,16 @@ export default {
             supportsTablet: false,
             bundleIdentifier: "com.wharepumanawa.canyontravel",
             userInterfaceStyle: 'light',
-            buildNumber: '7',
+            buildNumber: "4",
             config: {
                 googleMapsApiKey: "AIzaSyBifu6VZKsaLr03cGLKt6sfsQEHpPnU_nU"
             },
             infoPlist: {
+                NSLocationWhenInUseUsageDescription: "Canyon Traveler uses your location to show local weather, canyon traffic times, and resort travel data.",
                 NSAppTransportSecurity: {
                     NSAllowsArbitraryLoads: true,
                     NSExceptionDomains: {
-                        "localhost": {
-                            NSTemporaryExceptionAllowsInsecureHTTPLoads: true,
+                        "localhost": {NSTemporaryExceptionAllowsInsecureHTTPLoads: true,
                             NSTemporaryExceptionAllowsInsecureHTTPLoads_TransferOnly: true
                         },
                         "192.168.11.61": {NSTemporaryExceptionAllowsInsecureHTTPLoads: true}
@@ -63,7 +64,7 @@ export default {
             favicon: "./assets/canyon_travellers_v4.png"
         },
         plugins: [
-            "expo-router", "expo-font", "expo-asset", "react-native-iap",
+            "expo-router", "expo-font", "expo-asset",
             [
                 "react-native-google-mobile-ads",
                 {
@@ -79,11 +80,9 @@ export default {
             },
             reactNativeGoogleMobileAds: {
                 android_app_id: "ca-app-pub-6336863096491370~8630432238",
-                ios_app_id: "ca-app-pub-6336863096491370~8008481671",
-                userTrackingUsageDescription:
-                    "This identifier will be used to deliver personalized ads."
+                ios_app_id: "ca-app-pub-6336863096491370~8008481671"
             },
-            apiUrl: process.env.API_URL ?? "https://pumanawa-kam.onrender.com/api/v1",
+            apiUrl: process.env.API_URL ?? "https://pumanawa-kam.onrender.com/api/v1/",
             apiJwtToken: process.env.API_JWT_TOKEN,
             easSkipAutoFingerprint: 1
         }

@@ -1,12 +1,20 @@
 // components/BannerHeaderAd.tsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, SafeAreaView, StyleSheet, TouchableOpacity, Image, Linking, ViewStyle, useWindowDimensions, Text } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    View,
+    SafeAreaView,
+    StyleSheet,
+    TouchableOpacity,
+    Image,
+    Linking,
+    ViewStyle,
+    useWindowDimensions,
+} from "react-native";
+import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 
 type Props = {
-    id?: string | null;
-    isTest?: boolean | true;
-    // optional: override campaigns or styles
+    android_id?: string | null;
+    ios_id?: string | null;
     campaigns?: HouseCampaign[];
     style?: ViewStyle;
 };
@@ -14,36 +22,37 @@ type Props = {
 type HouseCampaign = {
     id: string;
     title: string;
-    image: any;        // require('...') or { uri }
-    url: string;       // external deep link or in-app route handled by your nav
+    image: any;
+    url: string;
     cta?: string;
 };
 
+// To keep App Store happy, point these at neutral landing pages or iOS pages,
+// not directly at Google Play for the iOS binary.
 const DEFAULT_CAMPAIGNS: HouseCampaign[] = [
     {
-        id: 'aura_promo_ad',
-        title: 'Aura Weather - Ultimate weather companion',
-        image: require('@/assets/ads/aura_house_one.png'),
-        url: 'https://play.google.com/store/apps/details?id=com.onrender.pumanawa_kam'
+        id: "aura_promo_ad",
+        title: "Aura Weather - Ultimate weather companion",
+        image: require("@/assets/ads/aura_house_one.png"),
+        url: "https://www.auraweatherforecasts.com/",
     },
     {
-        id: 'aura_promo_ad_2',
-        title: 'Aura Weather isn’t just another weather app — it’s your smart, fast, and distraction-free forecast companion',
-        image: require('@/assets/ads/aura_house_two.png'),
-        url: 'https://play.google.com/store/apps/details?id=com.onrender.pumanawa_kam'
+        id: "aura_promo_ad_2",
+        title: "Aura Weather – smart, fast, distraction-free forecasts",
+        image: require("@/assets/ads/aura_house_two.png"),
+        url: "https://www.auraweatherforecasts.com/",
     },
     {
-        id: 'ct_promo_ad1',
-        title: 'Canyon Traveler - Smooth Drives, Epic Rides',
-        image: require('@/assets/ads/canyon_travel_house_1.png'),
-        url: 'https://play.google.com/store/apps/details?id=com.wharepumanawa.canyon_travel'
-    }
+        id: "ct_promo_ad1",
+        title: "Canyon Traveller - Smooth Drives, Epic Rides",
+        image: require("@/assets/ads/canyon_travel_house_1.png"),
+        url: "https://www.canyontraveller.com/",
+    },
 ];
 
-// Simple rotating “house ad” for fallback
 function HouseBanner({
                          campaigns = DEFAULT_CAMPAIGNS,
-                         height = 50
+                         height = 50,
                      }: {
     campaigns?: HouseCampaign[];
     height?: number;
@@ -60,7 +69,9 @@ function HouseBanner({
     const onPress = useCallback(async () => {
         try {
             await Linking.openURL(current.url);
-        } catch {}
+        } catch {
+            // ignore
+        }
     }, [current]);
 
     return (
@@ -76,23 +87,25 @@ function HouseBanner({
     );
 }
 
-export default function BannerHeaderAd({ id, isTest, campaigns, style }: Props) {
+export default function BannerHeaderAd({ android_id, ios_id, campaigns, style }: Props) {
     const { width } = useWindowDimensions();
 
-    // Ad unit id (test by default unless you pass isTest=false & a real id)
-    const adUnitId = id || TestIds.BANNER;
-    const unitId = isTest ? TestIds.BANNER : adUnitId;
+    const REAL_UNIT = (android_id || ios_id)
+        ? {
+            android: android_id ?? undefined,
+            ios: ios_id ?? undefined,
+        }
+        : undefined;
 
-    // Track ad lifecycle
-    const [status, setStatus] = useState<'loading' | 'loaded' | 'failed'>('loading');
+    const adUnitId =
+        REAL_UNIT?.android || REAL_UNIT?.ios || TestIds.BANNER;
+    const unitId = __DEV__ ? TestIds.BANNER : adUnitId;
 
-    // Re-mount <BannerAd> to trigger a reload after failure (cooldown to be polite)
+    const [status, setStatus] = useState<"loading" | "loaded" | "failed">("loading");
     const [adKey, setAdKey] = useState(0);
     const retryTimer = useRef<NodeJS.Timeout | null>(null);
 
-    // Anchored adaptive banners have dynamic height; reserve sensible fallback space
     const fallbackHeight = useMemo(() => {
-        // rough heuristic: small phones ~50dp, large/tablets ~90dp
         return width >= 600 ? 50 : 50;
     }, [width]);
 
@@ -101,9 +114,9 @@ export default function BannerHeaderAd({ id, isTest, campaigns, style }: Props) 
         retryTimer.current = setTimeout(() => {
             retryTimer.current && clearTimeout(retryTimer.current);
             retryTimer.current = null;
-            setStatus('loading');
-            setAdKey((k) => k + 1); // re-mount BannerAd
-        }, 50000); // ~50s cooldown (avoid aggressive reloads)
+            setStatus("loading");
+            setAdKey((k) => k + 1);
+        }, 50000);
     }, []);
 
     useEffect(() => {
@@ -115,22 +128,26 @@ export default function BannerHeaderAd({ id, isTest, campaigns, style }: Props) 
     return (
         <SafeAreaView style={[styles.container, style]}>
             <View style={[styles.adWrapper, { minHeight: 20 }]}>
-                {/* Fallback shows while loading or failed; hidden once an ad loads */}
-                {status === 'loaded' ? null : <HouseBanner campaigns={campaigns} height={fallbackHeight} />}
+                {/* While loading / failed, show your own house banner */}
+                {status === "loaded" ? null : (
+                    <HouseBanner campaigns={campaigns} height={fallbackHeight} />
+                )}
 
                 <BannerAd
                     key={adKey}
                     unitId={unitId}
                     size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                    // Keep requests non-personalized by default; you can adjust based on ATT/consent
-                    requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+                    requestOptions={{
+                        // ATT authorized → can be personalized
+                        // ATT denied / not authorized → non-personalized only
+                        requestNonPersonalizedAdsOnly: true,
+                    }}
                     onAdLoaded={() => {
-                        if (__DEV__) console.log('✅ Ad loaded');
-                        setStatus('loaded');
+                        setStatus("loaded");
                     }}
                     onAdFailedToLoad={(error) => {
-                        if (__DEV__) console.log('❌ Ad failed:', error);
-                        setStatus('failed');
+                        if (__DEV__) console.log("❌ Ad failed:", error);
+                        setStatus("failed");
                         scheduleRetry();
                     }}
                 />
@@ -140,24 +157,14 @@ export default function BannerHeaderAd({ id, isTest, campaigns, style }: Props) 
 }
 
 const styles = StyleSheet.create({
-    container: { backgroundColor: '#fff' },
-    adWrapper: { alignItems: 'center', justifyContent: 'center' },
+    container: { backgroundColor: "#fff" },
+    adWrapper: { alignItems: "center", justifyContent: "center" },
 
-    // House banner
     houseContainer: {
-        width: '100%',
-        backgroundColor: '#0b4d2f',
+        width: "100%",
+        backgroundColor: "#0b4d2f",
         borderRadius: 8,
-        overflow: 'hidden'
+        overflow: "hidden",
     },
-    houseImage: { width: '100%', height: '100%' },
-    houseOverlay: {
-        position: 'absolute',
-        left: 8, right: 8, bottom: 6,
-        backgroundColor: 'rgba(0,0,0,0.35)',
-        borderRadius: 6,
-        paddingHorizontal: 8, paddingVertical: 4
-    },
-    houseTitle: { color: '#fff', fontWeight: '600' },
-    houseCta: { color: '#c8facc', fontWeight: '500', marginTop: 2 }
+    houseImage: { width: "100%", height: "100%" },
 });

@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.RemoteViews
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,12 @@ object WidgetCore {
 
     // Build once from BuildConfig (tolerate trailing slash in env)
     private val apiUrlBase = BuildConfig.API_BASE.trimEnd('/')
-    private val bearerToken = "Bearer ${BuildConfig.API_TOKEN}"
+    private fun getAuthHeaders(context: Context): Pair<String?, String?> {
+        val prefs = context.getSharedPreferences("WIDGET_AUTH", Context.MODE_PRIVATE)
+        val userId = prefs.getString("WIDGET_USER_ID", null)
+        val jwt = prefs.getString("WIDGET_JWT", null)
+        return Pair(userId, jwt)
+    }
 
     data class CanyonData(
         val resort: String,
@@ -57,6 +63,7 @@ object WidgetCore {
         )
     }
 
+    // WidgetCore.kt — FINAL PATCHED VERSION
     suspend fun updateOneWidget(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -67,20 +74,43 @@ object WidgetCore {
     ) {
         val views = RemoteViews(context.packageName, layoutResId)
 
-        // click actions (root opens config; button refreshes)
-        views.setOnClickPendingIntent(R.id.widget_root, configPendingIntent(context, appWidgetId))
-        views.setOnClickPendingIntent(
-            R.id.refresh_button,
-            refreshPendingIntent(context, providerClass, refreshAction, appWidgetId)
+        Log.d(TAG, "We are updating the widget appWidgetId=$appWidgetId selectedResort=")
+
+        // 🔥 CLICK HANDLERS
+        // Root → Opens widget config Activity
+        val configIntent = Intent(context, WidgetConfigActivity::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            // Unique URI fixes “pendingIntent cached” issue — REQUIRED
+            data = Uri.parse("canyontravel://config/$appWidgetId")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        val configPending = PendingIntent.getActivity(
+            context,
+            appWidgetId, // unique per widget
+            configIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        views.setOnClickPendingIntent(R.id.widget_root, configPending)
+
+        // Refresh button → triggers Worker refresh
+        val refreshPending = refreshPendingIntent(
+            context,
+            providerClass,
+            refreshAction,
+            appWidgetId
+        )
+        views.setOnClickPendingIntent(R.id.refresh_button, refreshPending)
+
+        // 🔥 READ CURRENT SELECTED RESORT
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val selectedResort = prefs.getString(keyFor(appWidgetId), null)
 
-        Log.d(TAG, "appWidgetId=$appWidgetId selectedResort=$selectedResort")
+        Log.d(TAG, "appWidgetId=$appWidgetId")
 
         if (selectedResort.isNullOrBlank()) {
-            // Prompt state
+            // No resort yet → prompt user
             withContext(Dispatchers.Main) {
                 views.setTextViewText(R.id.resort_name, "Select a resort")
                 views.setTextViewText(R.id.to_resort, "--")
@@ -90,19 +120,22 @@ object WidgetCore {
             return
         }
 
+        // 🔥 CALL API
         val encodedId = URLEncoder.encode(selectedResort, "UTF-8")
-        val fullUrl = "$apiUrlBase/travel_times?resort_id=$encodedId"
+        val (userId, jwt) = getAuthHeaders(context)
+        val fullUrl = "$apiUrlBase/travel_times?resort_id=$encodedId&auth[user_id]=$userId"
 
         Log.d(TAG, "API_BASE=$apiUrlBase")
         Log.d(TAG, "Fetch URL=$fullUrl")
-        Log.d(TAG, "Token(head)=${bearerToken.take(18)}… len=${bearerToken.length}")
 
         val conn = (URL(fullUrl).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 8000
             readTimeout = 8000
-            setRequestProperty("Authorization", bearerToken)
             setRequestProperty("Accept", "application/json")
+            if (!jwt.isNullOrBlank()) {
+                setRequestProperty("Authorization", "Bearer $jwt")
+            }
             setRequestProperty("User-Agent", "CanyonTravelWidget/1.0")
         }
 
@@ -143,6 +176,7 @@ object WidgetCore {
             conn.disconnect()
         }
     }
+
 
     private fun parseData(json: JSONObject): CanyonData {
         val resort     = json.optString("resort", "—")

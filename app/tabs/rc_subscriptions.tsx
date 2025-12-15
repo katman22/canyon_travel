@@ -18,13 +18,18 @@ import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
 import {SubscriptionFreePlanCard} from "@/components/SubscriptionFreePlanCard";
 import FloatingSettingsButton from "@/components/FloatingSettingsButton";
-import {clearHomeResorts} from "@/lib/userPrefs";
+import {useSubscription} from "@/context/SubscriptionContext";
+import {router} from "expo-router";
+import {deriveCurrentTier, rankForPlanKey} from "@/utils/upgrader";
+import Purchases from "react-native-purchases";
+import {SubscriptionLegalFooter} from "@/components/SubscriptionLegalFooter";
 
 // --------- CONFIG ----------
 const RC_API_KEY = Platform.select({
     ios: "appl_CGSkKUbeKLufJXnmTNildaLBClw",
     android: "goog_hDsZkRPwzRmXonNUoMkoWJHXUzd",
 })!;
+
 // Your explicit SKU map (keeps logic simple for toggling)
 const SKUS = {
     standard: {monthly: "ct_standard_monthly", yearly: "ct_standard_yearly"},
@@ -34,12 +39,16 @@ const SKUS = {
 const ALL_SKUS = Object.values(SKUS).flatMap(v => [v.monthly, v.yearly]);
 
 export default function RCSubscriptionsScreen() {
+    const { afterPurchaseOrRestore } = useSubscription();
+
+
     const {colors} = useTheme();
     const styles = getStyles(colors);
     const sheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['35%', '95%'], []);
     const insets = useSafeAreaInsets();
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
+    const {refresh: refreshSubContext} = useSubscription();
 
     const getBySku = (sku: string) => {
         const direct =
@@ -54,10 +63,11 @@ export default function RCSubscriptionsScreen() {
 
 
     const {
-        configured, loading, error,
+        loading, error,
         info, waitForActiveEntitlements,
         productsById,
-        purchaseBySku, restore, refresh
+        purchaseBySku, restore, refresh,
+        activeEntitlements
     } = useRevenueCat({
         apiKey: RC_API_KEY,
         skuList: ALL_SKUS,
@@ -75,10 +85,10 @@ export default function RCSubscriptionsScreen() {
         if (isReady) return;                 // stop when ready
         setProgress(0);
         const id = setInterval(() => {
-        setProgress((p) => (p >= 0.95 ? 0.95 : p + 0.05)); // creep to 95%
+            setProgress((p) => (p >= 0.95 ? 0.95 : p + 0.05)); // creep to 95%
         }, 300);
         return () => clearInterval(id);
-        }, [isReady]);
+    }, [isReady]);
 
 
     const priceTextFor = (sku: string) => {
@@ -129,7 +139,53 @@ export default function RCSubscriptionsScreen() {
         },
     ] as const;
 
+    const productIdToPeriod = (tierKey: "standard" | "pro" | "premium", pid?: string) => {
+        if (!pid) return undefined;
+        if (pid === SKUS[tierKey].yearly) return "yearly";
+        if (pid === SKUS[tierKey].monthly) return "monthly";
+        // fallback for prefixed/suffixed product ids
+        if (pid.toLowerCase().includes("year")) return "yearly";
+        if (pid.toLowerCase().includes("month")) return "monthly";
+        return undefined;
+    };
+    const current = useMemo(() => deriveCurrentTier(activeEntitlements), [activeEntitlements]);
+
+    const currentProductId: string | undefined = useMemo(() => {
+        const tier = current.tierKey; // "free" | "standard" | "pro" | "premium"
+        const ent = info?.entitlements?.active?.[tier];
+        return ent?.productIdentifier as string | undefined;
+    }, [info, current.tierKey]);
+
+    const currentPeriod = useMemo(() => {
+        if (current.rank === 0) return undefined;
+        const tk = current.tierKey as "standard" | "pro" | "premium";
+        return productIdToPeriod(tk, currentProductId); // "monthly" | "yearly" | undefined
+    }, [current.rank, current.tierKey, currentProductId]);
+
+
     const handleSelect = async (sku: string, label: string) => {
+        // ranking gate
+        const targetPlan = Object
+            .entries(SKUS)
+            .find(([, v]) => v.monthly === sku || v.yearly === sku)?.[0] as
+            | "standard" | "pro" | "premium" | undefined;
+
+        // allow in-tier monthly → yearly
+        const isSameTierChangeToYearly =
+            targetPlan === (current.tierKey as "standard" | "pro" | "premium") &&
+            currentPeriod === "monthly" &&
+            sku === SKUS[targetPlan].yearly;
+
+        if (targetPlan && !isSameTierChangeToYearly) {
+            const targetRank = rankForPlanKey(targetPlan);
+            if (current.rank >= targetRank) {
+                Alert.alert(
+                    "Not available",
+                    "You already have this or a higher plan. Manage or downgrade in your app store."
+                );
+                return;
+            }
+        }
         try {
             // 1) Make the purchase
             await purchaseBySku(sku);
@@ -144,11 +200,18 @@ export default function RCSubscriptionsScreen() {
                 delayMs: 300,
             });
 
-            // 3) Clear homes so Locations recomputes unlocked/locked state
-            await clearHomeResorts();
+            try {
+                await refreshSubContext();
+            } catch (err) {
+                console.log("Failed to refresh global subscription context after purchase:", err);
+            }
+
+            await afterPurchaseOrRestore();
+            // 5) Send them straight to Settings to pick home resorts
+            router.replace("/tabs/settings");
 
             Alert.alert(
-                "Purchase completed",
+                "Purchase completed. Please pick home resorts",
                 `Current Subscription: ${got.join(", ") || "none"}`
             );
         } catch (e: any) {
@@ -176,7 +239,7 @@ export default function RCSubscriptionsScreen() {
                 imageStyle={{opacity: 0.75}}
             />
 
-            <FloatingSettingsButton />
+            <FloatingSettingsButton/>
 
             <View style={{flex: 1}}>
                 <BottomSheet
@@ -194,30 +257,76 @@ export default function RCSubscriptionsScreen() {
                         style={{backgroundColor: "#fff"}}
                     >
                         <Text style={styles.subscriptionPlan}>Choose Your Plan</Text>
-                        <Text style={styles.subscriptionDescription}>Level up your ride - choose Standard, Pro, or Premium.</Text>
-                        <SubscriptionFreePlanCard />
-                        {plans.map((p) => (
-                            <SubscriptionPlanCard
-                                key={p.key}
-                                title={p.title}
-                                summary={p.summary}
-                                popular={p.popular}
-                                features={p.features}
-                                tagLine={p.tagLine}
-                                monthlyPriceText={priceTextFor(p.monthlySku)}
-                                yearlyPriceText={priceTextFor(p.yearlySku)}
-                                yearlySavingsText={savingsText(p.monthlySku, p.yearlySku)}
-                                onPressMonthly={() => handleSelect(p.monthlySku, `${p.title} Monthly`)}
-                                onPressYearly={() => handleSelect(p.yearlySku, `${p.title} Yearly`)}
-                                monthlyDisabled={loading}
-                                yearlyDisabled={loading}
-                            />
-                        ))}
+                        <Text style={styles.subscriptionDescription}>Level up your ride - choose Standard, Pro, or
+                            Premium.</Text>
+                        <SubscriptionFreePlanCard/>
+                        {plans.map((p) => {
+                            const planRank = rankForPlanKey(p.key as "standard" | "pro" | "premium");
+                            const isUpgrade = planRank > current.rank;
+                            const isCurrent = planRank === current.rank;
 
+                            // defaults (higher tiers): normal upgrade buttons
+                            let onPressMonthly: (() => void) | undefined =
+                                isUpgrade ? () => {
+                                    void handleSelect(p.monthlySku, `${p.title} Monthly`);
+                                } : undefined;
+                            let onPressYearly: (() => void) | undefined =
+                                isUpgrade ? () => {
+                                    void handleSelect(p.yearlySku, `${p.title} Yearly`);
+                                } : undefined;
+                            let monthlyCtaLabel: string | undefined = isUpgrade ? "Upgrade monthly" : undefined;
+                            let yearlyCtaLabel: string | undefined = isUpgrade ? "Upgrade yearly" : undefined;
+                            let statusLabel: string | undefined =
+                                isCurrent ? "Your current plan" : (!isUpgrade ? "Manage / downgrade in store" : undefined);
+
+                            // If it's the current plan and the user is on MONTHLY, show an in-tier upgrade to YEARLY
+                            if (isCurrent && currentPeriod === "monthly") {
+                                statusLabel = "Your current plan • Monthly";
+                                onPressMonthly = undefined; // hide monthly button
+                                onPressYearly = () => {
+                                    void handleSelect(p.yearlySku, `${p.title} Yearly`);
+                                };
+                                monthlyCtaLabel = undefined;
+                                yearlyCtaLabel = "Upgrade to Yearly";
+                            }
+
+                            // If it's the current plan and already YEARLY, no CTAs
+                            if (isCurrent && currentPeriod === "yearly") {
+                                statusLabel = "Your current plan • Yearly";
+                                onPressMonthly = undefined;
+                                onPressYearly = undefined;
+                                monthlyCtaLabel = undefined;
+                                yearlyCtaLabel = undefined;
+                            }
+
+                            return (
+                                <SubscriptionPlanCard
+                                    key={p.key}
+                                    title={p.title}
+                                    summary={p.summary}
+                                    popular={p.popular}
+                                    features={p.features}
+                                    tagLine={p.tagLine}
+                                    monthlyPriceText={priceTextFor(p.monthlySku)}
+                                    yearlyPriceText={priceTextFor(p.yearlySku)}
+                                    yearlySavingsText={savingsText(p.monthlySku, p.yearlySku)}
+                                    onPressMonthly={onPressMonthly}
+                                    onPressYearly={onPressYearly}
+                                    monthlyDisabled={loading || (!isUpgrade && !isCurrent)} // disabled if not relevant
+                                    yearlyDisabled={loading || (!isUpgrade && !isCurrent)}
+                                    statusLabel={statusLabel}
+                                    monthlyCtaLabel={monthlyCtaLabel}
+                                    yearlyCtaLabel={yearlyCtaLabel}
+                                />
+                            );
+                        })}
                         <Text style={styles.subDetails}>
                             All plans include weather + road condition updates. Subscriptions auto-renew; cancel anytime
                             in your store settings.
                         </Text>
+
+
+                        <SubscriptionLegalFooter />
                     </BottomSheetScrollView>
                 </BottomSheet>
             </View>

@@ -12,11 +12,9 @@ import {
 import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import {useTheme} from '@react-navigation/native';
 import type {ComponentType, ReactElement, ReactNode} from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {useSelectedResort} from '@/context/ResortContext';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import BannerHeaderAd from "@/components/BannerHeaderAd";
-import LocationHeaderAd from "@/components/LocationHeaderAd";
 
 export type BottomSheetListHandle = {
     expand: () => void;
@@ -144,7 +142,7 @@ function InnerBottomSheetList<T>(
 
     const ListHeader = (
         <>
-            <BannerHeaderAd/>
+            <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
             {composedHeader}
         </>
     );
@@ -153,7 +151,7 @@ function InnerBottomSheetList<T>(
         <View
             onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
         >
-            <BannerHeaderAd/>
+            <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
         </View>
     );
 

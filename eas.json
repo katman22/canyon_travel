@@ -13,7 +13,7 @@
       "env": {
         "EAS_BUILD_PRE_INSTALL_COMMAND": "bash ios/patch_xcodeproj.sh",
         "BUNDLE_GEMFILE": "ios/Gemfile",
-        "API_URL": "http://localhost:3000/api/v1",
+        "API_URL": "https://pumanawa-kam.onrender.com/api/v1/",
         "API_JWT_TOKEN": "eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc"
       }
     },
@@ -25,7 +25,7 @@
       "env": {
         "EAS_BUILD_PRE_INSTALL_COMMAND": "bash ios/patch_xcodeproj.sh",
         "BUNDLE_GEMFILE": "ios/Gemfile",
-        "API_URL": "https://pumanawa-kam.onrender.com/api/v1",
+        "API_URL": "https://pumanawa-kam.onrender.com/api/v1/",
         "API_JWT_TOKEN": "eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc",
         "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
@@ -37,7 +37,7 @@
       "env": {
         "EAS_BUILD_PRE_INSTALL_COMMAND": "bash ios/patch_xcodeproj.sh",
         "BUNDLE_GEMFILE": "ios/Gemfile",
-        "API_URL": "https://pumanawa-kam.onrender.com/api/v1",
+        "API_URL": "https://pumanawa-kam.onrender.com/api/v1/",
         "API_JWT_TOKEN": "eyJhbGciOiJIUzI1NiJ9.eyJhcHAiOiJtb2JpbGUiLCJleHAiOjIwNjIyODY1MzZ9.SeN6BWPJtm-_dADD37jqFKWoVkgjq_bnwbDWza-JEdc",
         "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }

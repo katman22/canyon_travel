@@ -6,11 +6,11 @@ import getStyles from "@/assets/styles/styles";
 import WeatherAlerts from "@/components/WeatherAlerts";
 import HourlyForecastStrip from "@/components/HourlyForecastStrip";
 import ForecastSummary from "@/components/ForecastSummary";
-import type { Alerts, ForecastPeriod, LocationHourlyForecast } from "@/constants/types";
+import {Alerts, AlertWeather, ForecastPeriod, LocationHourlyForecast} from "@/constants/types";
 
 // Props your main view will pass in
 type Props = {
-    alerts?: Alerts | null;
+    alerts?: AlertWeather[] | [];
     hourly?: ForecastPeriod[] | LocationHourlyForecast | undefined;
     summary?: string | null;
 

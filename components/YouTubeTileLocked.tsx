@@ -31,7 +31,7 @@ export default function YouTubeTileLocked({
         // Add cache-buster via nonce so refresh always pulls the latest frame
         return (
             `https://www.youtube-nocookie.com/embed/${streamId}` +
-            `?autoplay=0&mute=0&playsinline=1&controls=0&rel=0&modestbranding=1&disablekb=1&fs=0&_=${nonce}`
+            `?playsinline=1&controls=0&rel=0&modestbranding=1&fs=1&_=${nonce}`
         );
     }, [streamId, nonce]);
 

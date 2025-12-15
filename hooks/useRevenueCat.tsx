@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 import Purchases, { CustomerInfo, LOG_LEVEL } from "react-native-purchases";
+import {apiAuth} from "@/lib/apiAuth";
 
 let __rcConfiguredKey: string | null = null; // remember which key actually configured
 
@@ -18,12 +19,11 @@ export function useRevenueCat({
                                   skuList = [],
                                   logLevel = (__DEV__ ? "DEBUG" : "ERROR"),
                               }: UseRevenueCatOpts) {
-    const [configured, setConfigured] = useState(false);
     const [products, setProducts] = useState<RCProduct[]>([]);
     const [info, setInfo] = useState<CustomerInfo | null>(null);
+    const [hasLoadedInfo, setHasLoadedInfo] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
     const skuKey = React.useMemo(() => (skuList ?? []).join("|"), [skuList]);
 
     // Sanity checks (dev only)
@@ -38,33 +38,32 @@ export function useRevenueCat({
         }
     }, [apiKey]);
 
-    // Configure (and reconfigure if key differs)
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                await Purchases.setLogLevel(LOG_LEVEL[logLevel]);
-
-                if (!__rcConfiguredKey || __rcConfiguredKey !== apiKey) {
-                    // If some earlier screen configured with a wrong key, reconfigure now.
-                    await Purchases.configure({ apiKey });
-                    __rcConfiguredKey = apiKey;
-                }
-
-                if (mounted) setConfigured(true);
-            } catch (e: any) {
-                if (mounted) setError(e?.message ?? String(e));
-                console.error("[RevenueCat] configure failed:", e);
-            }
-        })();
-        return () => {
-            mounted = false;
-        };
-    }, [apiKey, logLevel]);
+    // // Configure (and reconfigure if key differs)
+    // useEffect(() => {
+    //     let mounted = true;
+    //     (async () => {
+    //         try {
+    //             await Purchases.setLogLevel(LOG_LEVEL[logLevel]);
+    //
+    //             if (!__rcConfiguredKey || __rcConfiguredKey !== apiKey) {
+    //                 // If some earlier screen configured with a wrong key, reconfigure now.
+    //                 Purchases.configure({apiKey: apiKey, appUserID: String(userId)});
+    //                 __rcConfiguredKey = apiKey;
+    //             }
+    //
+    //             if (mounted) setConfigured(true);
+    //         } catch (e: any) {
+    //             if (mounted) setError(e?.message ?? String(e));
+    //             console.error("[RevenueCat] configure failed:", e);
+    //         }
+    //     })();
+    //     return () => {
+    //         mounted = false;
+    //     };
+    // }, [apiKey, logLevel]);
 
     // Load products + customer info, listen for updates
     useEffect(() => {
-        if (!configured) return;
         let mounted = true;
 
         const load = async () => {
@@ -78,6 +77,7 @@ export function useRevenueCat({
                 if (!mounted) return;
                 setProducts(prods ?? []);
                 setInfo(ci);
+                setHasLoadedInfo(true);
                 setError(null);
             } catch (e: any) {
                 if (mounted) setError(e?.message ?? String(e));
@@ -96,7 +96,7 @@ export function useRevenueCat({
             mounted = false;
             (Purchases as any).removeCustomerInfoUpdateListener?.(onUpdate);
         };
-    }, [configured, skuKey]);
+    }, [ skuKey]);
 
     // Map of products by id/sku
     const productsById = useMemo(() => {
@@ -135,6 +135,8 @@ export function useRevenueCat({
             const [prods, ci] = await Promise.all([prodsPromise, Purchases.getCustomerInfo()]);
             setProducts(prods ?? []);
             setInfo(ci);
+            await syncEntitlements(ci);
+
             setError(null);
         } catch (e: any) {
             setError(e?.message ?? String(e));
@@ -143,6 +145,31 @@ export function useRevenueCat({
             setLoading(false);
         }
     };
+
+    async function syncEntitlements(customerInfo: CustomerInfo) {
+        const ents = customerInfo.entitlements.all ?? {};
+        const currentAppUserId = await Purchases.getAppUserID();
+        const originalAppUserId = customerInfo.originalAppUserId;
+        const payload = {
+            current_app_user_id: currentAppUserId,
+            original_app_user_id: originalAppUserId,
+            entitlements: Object.fromEntries(
+                Object.entries(ents).map(([id, e]: any) => [
+                    id,
+                    {
+                        isActive: e.isActive,
+                        willRenew: e.willRenew,
+                        productIdentifier: e.productIdentifier,
+                        latestPurchaseDate: e.latestPurchaseDate,
+                        expirationDate: e.expirationDate,
+                        store: e.store,
+                    },
+                ])
+            ),
+        };
+
+        await apiAuth.post("iap/sync", payload);
+    }
 
     const getBySkuFromMap = (sku: string) => {
         const direct =
@@ -241,7 +268,7 @@ export function useRevenueCat({
 
 
     return {
-        configured,
+        hasLoadedInfo,
         loading,
         error,
         info,

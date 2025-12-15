@@ -38,9 +38,9 @@ export default function YouTubeTileBlockedPlayer({
     // Build a minimal, non-interactive embed:
     // autoplay=1 (starts immediately), mute=1 (iOS autoplay), controls=0, fs=0, disablekb=1 (no UI)
     const url = useMemo(() => {
+        // no autoplay, no mute, let controls show
         return (
-            `https://www.youtube-nocookie.com/embed/${streamId}` +
-            `?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&disablekb=1&fs=0&_=${nonce}`
+                `https://www.youtube.com/watch/${streamId}?autoplay=1&playsinline=1&controls=1&fs=1`
         );
     }, [streamId, nonce]);
 
@@ -77,16 +77,16 @@ export default function YouTubeTileBlockedPlayer({
                 {/* Player (hidden once blackout=true) */}
                 {!blackout && (
                     <WebView
-                        key={nonce}                           // full remount on refresh
+                        key={nonce}
                         source={{ uri: url }}
                         style={{ height: "100%", width: "100%" }}
                         javaScriptEnabled
                         domStorageEnabled
                         allowsInlineMediaPlayback
-                        allowsFullscreenVideo={false}
-                        mediaPlaybackRequiresUserAction={false} // autoplay allowed because mute=1
+                        allowsFullscreenVideo={true}
+                        mediaPlaybackRequiresUserAction={true} // user taps ▶ to start
                         originWhitelist={["*"]}
-                        onLoadEnd={() => startTimer()}          // restart timer on each load
+                        onLoadEnd={() => startTimer()}
                         onShouldStartLoadWithRequest={(req) => {
                             const u = req.url || "";
                             if (u.startsWith("about:blank")) return true;
@@ -95,7 +95,8 @@ export default function YouTubeTileBlockedPlayer({
                                 u.includes("youtube-nocookie.com") ||
                                 u.includes("ytimg.com") ||
                                 u.includes("googleusercontent.com")
-                            ) return true;
+                            )
+                                return true;
                             return false;
                         }}
                     />

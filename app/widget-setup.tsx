@@ -1,168 +1,184 @@
+// WidgetSetupScreen.tsx
+
+import * as React from "react";
 import {
-    View,
-    Text,
     Platform,
     BackHandler,
-    TouchableOpacity,
-    SafeAreaView, ImageBackground, StyleSheet
-} from 'react-native';
-import {useRouter, useLocalSearchParams, useFocusEffect} from "expo-router";
-import {saveWidgetResortForId} from "@/native/WidgetUpdater";
-import {useSelectedResort} from '@/context/ResortContext';
-import {Resort} from "@/constants/types";
-import React, {useEffect, useRef, useState} from "react";
-import {fetchResorts} from "@/hooks/UseRemoteService";
-import BottomSheetList from "@/components/BottomSheetList";
-import BrandedLoader from "@/components/BrandedLoader";
-import {useTheme} from "@react-navigation/native";
+    ImageBackground,
+    StyleSheet,
+    SafeAreaView
+} from "react-native";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useTheme } from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
-import {saveWidgetResortForIOS, reloadWidgetsIOS} from '@/native/WidgetUpdater.ios';
+import BrandedLoader from "@/components/BrandedLoader";
+import { useResortListData } from "@/hooks/useResortListData";
+import { useSelectedResort } from "@/context/ResortContext";
+import { useSubscription } from "@/context/SubscriptionContext";
+import {
+    saveWidgetResortForIOS,
+    reloadWidgetsIOS,
+    getInstalledCountIOS,
+} from "@/native/WidgetUpdater.ios";
 
+import { saveWidgetResortForId } from "@/native/WidgetUpdater";
 
-export default function WidgetSetupScreen() {
+import type { Resort } from "@/constants/types";
+import WidgetResortBottomSheet from "@/components/WidgetResortBottomSheet";
+import { ResortProvider } from "@/context/ResortContext";
+
+export default function WidgetSetupScreenWrapper() {
+    return (
+        <ResortProvider>
+            <WidgetSetupScreen />
+        </ResortProvider>
+    );
+}
+
+function WidgetSetupScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{ widgetId?: string; source?: string }>();
+
+    // Identify widget
     const widgetId = Number(params.widgetId ?? NaN);
     const isWidgetConfig = params.source === "widget" || Number.isFinite(widgetId);
-    const didAutoRedirect = useRef(false);
-    const [allResorts, setAllResorts] = useState<Resort[]>([]);
-    const [loading, setLoading] = useState(false);
-    const {colors} = useTheme();
-    const styles = getStyles(colors as any);
-    const pageBackground = colors.background;
-    const {resort, refreshing, selectResort, refreshResorts} = useSelectedResort();
 
-    // Only auto-redirect when NOT doing widget setup
+    const {
+        resort,
+        prioritizedResorts,
+        loading,
+        refreshing,
+        refreshResorts,
+        isSubscribedHome
+    } = useResortListData();
+
+    const { selectResort } = useSelectedResort();
+    const { tier } = useSubscription();
+
+    const { colors } = useTheme();
+    const styles = getStyles(colors as any);
+
+    // Widget limits
+    const allowed = React.useMemo(() => {
+        switch (tier) {
+            case "premium":
+                return 2;
+            case "pro":
+                return 1;
+            default:
+                return 0;
+        }
+    }, [tier]);
+
+    const [installedCount, setInstalledCount] = React.useState(0);
+    const atLimit = installedCount >= allowed;
+
+    // Read widget count
     useFocusEffect(
         React.useCallback(() => {
-            if (!isWidgetConfig && resort && !didAutoRedirect.current) {
-                didAutoRedirect.current = true;
+            let cancelled = false;
+
+            (async () => {
+                if (Platform.OS === "ios") {
+                    const n = await getInstalledCountIOS();
+                    if (!cancelled) setInstalledCount(n);
+                } else {
+                    setInstalledCount(0);
+                }
+            })();
+
+            return () => {
+                cancelled = true;
+            };
+        }, [tier])
+    );
+
+    // Redirect if selecting resort normally
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!isWidgetConfig && resort) {
                 router.replace("/tabs/to_resort");
             }
-            return () => {};
         }, [isWidgetConfig, resort, router])
     );
 
-    useEffect(() => {
+    // Auto-apply for widget config
+    useFocusEffect(
+        React.useCallback(() => {
+            let cancelled = false;
 
-        let isMounted = true;           // prevent setState after unmount
-        (async () => {
-            try {
-                setLoading(true);
-                const resp = await fetchResorts();
-                if (isMounted) setAllResorts(resp?.resorts ?? []);
-            } finally {
-                if (isMounted) setLoading(false);
-            }
-        })();
-        return () => {
-            isMounted = false;
-        };
-    }, []); // ← run once
+            (async () => {
+                if (!isWidgetConfig) return;
+                if (!resort) return;
 
-    const onSelectForWidget = async (resort: Resort) => {
-        if (Platform.OS === 'ios') {
-            saveWidgetResortForIOS(String(resort.resort_id));
+                if (Platform.OS === "ios") {
+                    saveWidgetResortForIOS(String(resort.resort_id));
+                    reloadWidgetsIOS();
+                } else if (Number.isFinite(widgetId)) {
+                    await saveWidgetResortForId(widgetId, String(resort.resort_id));
+                }
+            })();
+
+            return () => {
+                cancelled = true;
+            };
+        }, [isWidgetConfig, resort, widgetId])
+    );
+
+    const finalizeAndExit = () => {
+        if (router.canGoBack()) return router.back();
+        if (Platform.OS === "android") return BackHandler.exitApp();
+    };
+
+    const onSelectForWidget = async (r: Resort) => {
+        console.log("We made it here");
+        // Apply to widget
+        if (Platform.OS === "ios") {
+            saveWidgetResortForIOS(String(r.slug));
             reloadWidgetsIOS();
-            await selectResort(resort);
-        } else {
-            if (Number.isFinite(widgetId)) {
-                await saveWidgetResortForId(widgetId, String(resort.resort_id));
-                await selectResort(resort);
-            }
+        } else if (Number.isFinite(widgetId)) {
+            console.log("2nd We made it here");
+            await saveWidgetResortForId(widgetId, String(r.slug));
         }
-        if (router.canGoBack()) {
-            router.back();
-            return;
-        }
-        if (Platform.OS === 'android') {
-            BackHandler.exitApp();
-            return;
-        }
-        // router.replace('/'); // optional iOS fallback
-    };
 
-    const handleResortSelection = async () => {
-        if (resort) {
-            await selectResort(resort);
-            router.replace('/tabs/to_resort');
-        } else {
-            router.replace('/tabs/locations');
-        }
-    };
-    const renderLink = (resort: Resort) => {
-        if (!resort) return null;
-        return (
-            <TouchableOpacity
-                onPress={() => handleResortSelection()}
-                style={{
-                    padding: 12,
-                    marginVertical: 8,
-                    backgroundColor: '#000',
-                    borderRadius: 6,
-                }}
-            >
-                <Text style={{color: '#fff', fontWeight: '600'}}>Visit {resort?.resort_name}</Text>
-            </TouchableOpacity>
-        );
-    };
-    const renderItem = ({item}: { item: Resort | null }) => {
-        if (!item) return null;
-        const isSelected = resort?.resort_id === item.resort_id;
-        return (
-            <TouchableOpacity
-                onPress={() => onSelectForWidget(item)}
-                style={{
-                    padding: 12,
-                    marginVertical: 8,
-                    backgroundColor: isSelected ? '#2E7D32' : '#4285F4',
-                    borderRadius: 6,
-                }}
-            >
-                <Text style={{color: '#fff', fontWeight: '600'}}>{item.resort_name}</Text>
-                <Text style={{color: '#fff', opacity: 0.9}}>{item.location}</Text>
-            </TouchableOpacity>
-        );
+        await selectResort(r);
+        finalizeAndExit();
     };
 
     if (loading || refreshing) {
         return (
-            <SafeAreaView style={{flex: 1, backgroundColor: colors.background}}>
-                <BrandedLoader message="Loading resorts…"/>
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+                <BrandedLoader message="Loading resorts…" />
             </SafeAreaView>
         );
     }
-    const linkEl = resort ? renderLink(resort) : undefined;
+
+    const filteredResorts = prioritizedResorts.filter((r) =>
+        isSubscribedHome(r)
+    );
+
+    // const finalResorts = resort
+    //     ? filteredResorts.filter((r) => r.resort_id !== resort.resort_id)
+    //     : filteredResorts;
 
     return (
-        <SafeAreaView style={{flex: 1, backgroundColor: pageBackground}}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <ImageBackground
-                source={require('@/assets/canyon_travellers_v6.png')}
+                source={require("@/assets/canyon_travellers_v6.png")}
                 style={StyleSheet.absoluteFillObject}
                 resizeMode="cover"
-                imageStyle={{opacity: 0.75}}
+                imageStyle={{ opacity: 0.75 }}
             />
 
-            <BottomSheetList<Resort>
-                data={(allResorts ?? []).filter(Boolean)}
-                keyExtractor={(item, index) => (item?.resort_id ? String(item.resort_id) : `__idx_${index}`)}
-                renderItem={renderItem}
+            <WidgetResortBottomSheet
+                selectedResort={resort}
+                otherResorts={filteredResorts}
+                onPressSelected={() => router.push("/tabs/to_resort")}
+                onPressOther={(item) => onSelectForWidget(item)}
                 refreshing={refreshing}
                 onRefresh={refreshResorts}
-                empty={
-                    <TouchableOpacity onPress={refreshResorts} style={{paddingVertical: 12}}>
-                        <Text style={{color: colors.text}}>
-                            No Resorts are currently available, please refresh to check.
-                        </Text>
-                    </TouchableOpacity>
-                }
-                lightModeBackground="#8ec88e"
                 contentContainerStyle={styles.cameraContainer}
-                snapPoints={['30%', '90%']} // optional, default matches this
-                topAccessory={linkEl}
             />
-
-
         </SafeAreaView>
     );
 }

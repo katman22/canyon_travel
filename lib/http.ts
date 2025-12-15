@@ -14,7 +14,7 @@ type CfgWithRetry = InternalAxiosRequestConfig & {
 
 const API_BASE =
     Constants.expoConfig?.extra?.apiUrl ??
-    "https://pumanawa-kam.onrender.com/api/v1"; // safe fallback
+    "http://localhost:3000/api/v1"; // safe fallback
 
 const TIMEOUT_MS = 20000;
 const SHOULD_LOG = (Constants.expoConfig?.extra as any)?.logApi ?? __DEV__;

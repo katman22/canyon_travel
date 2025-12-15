@@ -42,7 +42,7 @@ export function SubscriptionFreePlanCard() {
             >
                 {/* Monthly column */}
                 <View style={{ flexShrink: 1 }}>
-                    <Text style={{ color: '#000', fontSize: 18, fontWeight: "700" }}>$0 / Free</Text>
+                    <Text style={{ color: '#000', fontSize: 18, fontWeight: "700" }}>Free</Text>
                 </View>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 4, marginTop: 20 }}>

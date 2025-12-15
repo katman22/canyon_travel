@@ -3,13 +3,24 @@ require File.join(File.dirname(`node --print "require.resolve('react-native/pack
 
 require 'json'
 require 'xcodeproj'
+
+# --------------------------------------------------------------------
+# FIX: Add support for Xcode 16 (objectVersion 70) BEFORE CocoaPods loads
+# --------------------------------------------------------------------
 begin
-  # Teach older xcodeproj about Xcode 16’s project format
+  # Ensure the dictionaries exist (older EAS images can load xcodeproj without them)
+  Xcodeproj::Constants::PROJECT_OBJECT_VERSION_TO_COMPATIBILITY_VERSION ||= {}
+  Xcodeproj::Constants::COMPATIBILITY_VERSION_TO_PROJECT_OBJECT_VERSION ||= {}
+
+  # Add mapping for the new Xcode project format
   Xcodeproj::Constants::PROJECT_OBJECT_VERSION_TO_COMPATIBILITY_VERSION[70] ||= 'Xcode 16.0'
   Xcodeproj::Constants::COMPATIBILITY_VERSION_TO_PROJECT_OBJECT_VERSION['Xcode 16.0'] ||= 70
+
+  Pod::UI.puts "✔ Added Xcode 16 (objectVersion 70) compatibility to xcodeproj"
 rescue => e
-  Pod::UI.puts "xcodeproj 70 patch skipped: #{e}"
+  Pod::UI.warn "⚠️ Failed to patch xcodeproj for objectVersion 70: #{e}"
 end
+# --------------------------------------------------------------------
 
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
 
@@ -17,6 +28,7 @@ ENV['RCT_NEW_ARCH_ENABLED'] = '0' if podfile_properties['newArchEnabled'] == 'fa
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] = podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 
 platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
+
 install! 'cocoapods',
   :deterministic_uuids => false
 
@@ -26,7 +38,7 @@ target 'CanyonTraveller' do
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
-    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
+    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"]
   else
     config_command = [
       'npx',
@@ -38,9 +50,10 @@ target 'CanyonTraveller' do
     ]
   end
 
-# @generated begin react-native-maps - expo prebuild (DO NOT MODIFY) sync-e9cc66c360abe50bc66d89fffb3c55b034d7d369
+  # @generated begin react-native-maps - expo prebuild
   pod 'react-native-google-maps', path: File.dirname(`node --print "require.resolve('react-native-maps/package.json')"`)
-# @generated end react-native-maps
+  # @generated end react-native-maps
+
   config = use_native_modules!(config_command)
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
@@ -48,8 +61,7 @@ target 'CanyonTraveller' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
-    # An absolute path to your application root.
+    :hermes_enabled => podfile_properties['expo.jsEngine'].nil? || podfile_properties['expo.jsEngine'] == 'hermes',
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
@@ -62,15 +74,21 @@ target 'CanyonTraveller' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
-    # This is necessary for Xcode 14, because it signs resource bundles by default
-    # when building for devices.
+#     # ------------------------------------------------------
+#     # REQUIRED FIX: Ensure Pods project has objectVersion = 70
+#     # ------------------------------------------------------
+#     installer.pods_project.root_object.objectVersion = 70
+#     installer.pods_project.root_object.attributes['LastUpgradeCheck'] = '1600'
+#     installer.pods_project.save
+
+    # Disable signing for bundled Pods resources
     installer.target_installation_results.pod_target_installation_results
       .each do |pod_name, target_installation_result|
-      target_installation_result.resource_bundle_targets.each do |resource_bundle_target|
-        resource_bundle_target.build_configurations.each do |config|
-          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        target_installation_result.resource_bundle_targets.each do |resource_bundle_target|
+          resource_bundle_target.build_configurations.each do |config|
+            config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+          end
         end
       end
-    end
   end
 end

@@ -4,7 +4,9 @@ import {
     Text,
     TouchableOpacity,
     StatusBar,
-    SafeAreaView, ImageBackground, StyleSheet, Image
+    SafeAreaView,
+    ImageBackground,
+    StyleSheet,
 } from 'react-native';
 import getStyles from '@/assets/styles/styles';
 import {useTheme} from "@react-navigation/native";
@@ -21,27 +23,41 @@ import BannerHeaderAd from "@/components/BannerHeaderAd";
 import {useSubscription} from "@/context/SubscriptionContext";
 import {router} from "expo-router";
 import FloatingSettingsButton from "@/components/FloatingSettingsButton";
-import {useEffectiveAccess} from "@/hooks/useEffectiveAccess";
+
+import { PrefsEvents, EVENTS } from "@/lib/events";
+import {effectiveAccess} from "@/lib/access";
+import {fetchHomeResorts, HomeResortsResponse} from "@/lib/homeResorts";
 
 export default function Cameras() {
-    const { isSubscribed } = useSubscription();
+    const { tier, ready } = useSubscription();
+    const { resort, loading: resortLoading } = useSelectedResort();
+
     const [loading, setLoading] = useState(false);
+    const [cameras, setCameras] = useState<UdotCamera[]>([]);
+
+    const insets = useSafeAreaInsets();
+    const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
+
     const {colors} = useTheme();
     const styles = getStyles(colors);
-    const {resort, loading: resortLoading} = useSelectedResort();
-    const [cameras, setCameras] = useState<UdotCamera[]>([]);
-    const insets = useSafeAreaInsets();
-    const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16); // tidy fallback
+
     const {progress, reset, next} = useStepProgress(2);
 
     const sheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['30%', '95%'], []);
-    const { canUseSub } = useEffectiveAccess(resort?.resort_id, isSubscribed);
 
+    const [homes, setHomes] = useState<HomeResortsResponse | null>(null);
+    const { fullAccess } = effectiveAccess(resort, homes, tier);
+
+
+    const [cameraRefreshNonce, setCameraRefreshNonce] = useState(0);
+
+    // navigate to subs
     const getSubs = async () => {
         router.replace('/tabs/rc_subscriptions');
     };
 
+    // --- FETCH CAMERAS FOR CURRENT RESORT ---
     const fetchCameraData = async () => {
         if (!resort) {
             console.warn("No resort selected. Skipping fetch.");
@@ -55,31 +71,53 @@ export default function Cameras() {
             const udotCameraData = await fetchCameras(resort);
             next();
             setCameras(udotCameraData.cameras);
+            setCameraRefreshNonce((n) => n + 1);
         } catch (err) {
-            console.error("Error fetching directions:", err);
+            console.error("Error fetching cameras:", err);
         } finally {
             next();
             setLoading(false);
         }
     };
 
+    // load cameras whenever resort changes
     useEffect(() => {
         if (!resortLoading && resort) {
-            fetchCameraData().then();
+            fetchCameraData();
         }
     }, [resortLoading, resort]);
+
+    // --- LOAD HOME RESORT IDS JUST LIKE to_resort.tsx ---
+    useEffect(() => {
+        let mounted = true;
+        const loadHomes = async () => {
+            try {
+                const r = await fetchHomeResorts();
+                if (mounted) setHomes(r);
+            } catch (e) {
+                // ignore; UI still functions
+            }
+        };
+        if (ready && resort) loadHomes();
+
+        const onChange = () => { void loadHomes(); };
+        PrefsEvents.on(EVENTS.HOME_RESORTS_CHANGED, onChange);
+        return () => {
+            mounted = false;
+            PrefsEvents.off(EVENTS.HOME_RESORTS_CHANGED, onChange);
+        };
+    }, [ready, resort]);
 
 
     if (loading || resortLoading) {
         return (
-            <SafeAreaView style={{flex: 1, backgroundColor: '#fff' /* or LightPalette.background */}}>
+            <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
                 <BrandedLoader progress={progress} message="Collecting current online Cameras…"/>
             </SafeAreaView>
-        )
+        );
     }
 
     return (
-
         <SafeAreaView style={{flex: 1, backgroundColor: '#e6f3f8'}}>
             <ImageBackground
                 source={require("@/assets/canyon_travellers_v6.png")}
@@ -105,21 +143,33 @@ export default function Cameras() {
                         showsVerticalScrollIndicator={false}
                         style={{backgroundColor: "#fff"}}
                     >
-                        <BannerHeaderAd/>
-                        <Header message={"Cameras:"} onRefresh={fetchCameraData} colors={colors}
-                                resort={resort?.resort_name}/>
+                        <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+
+                        <Header
+                            message={"Cameras:"}
+                            onRefresh={fetchCameraData}
+                            colors={colors}
+                            resort={resort?.resort_name}
+                            // Only show the manual refresh button if they actually have full access,
+                            // same pattern as to_resort.tsx
+                            showRefresh={fullAccess}
+                        />
+
                         <CameraList
                             cameras={cameras}
                             styles={styles}
-                            isSubscribed={canUseSub}
+                            // IMPORTANT:
+                            // Pass fullAccess here, not generic "subscribed".
+                            // CameraList will treat false as "locked/free preview"
+                            isSubscribed={fullAccess}
+                            refreshNonce={cameraRefreshNonce}
                             onUnlock={getSubs}
                         />
-                        <BannerHeaderAd />
+
+                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
                     </BottomSheetScrollView>
                 </BottomSheet>
             </View>
         </SafeAreaView>
-
     );
-
 }

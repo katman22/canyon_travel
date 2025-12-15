@@ -1,214 +1,393 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import Checkbox from "expo-checkbox";
+import * as React from "react";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+    StyleSheet,
+} from "react-native";
+import { useTheme } from "@react-navigation/native";
 import { useSelectedResort } from "@/context/ResortContext";
 import { useSubscription } from "@/context/SubscriptionContext";
-import { loadHomeResorts, saveHomeResorts } from "@/lib/userPrefs";
-import { getActiveQuota, consumeChanges, nextResetAt } from "@/lib/homeResortQuota";
-import { weeklyChangeCap } from "@/lib/weeklyChangeCap";
-// NEW ⬇️ listen for resets fired by SubscriptionContext on expiry/downgrade
-import { PrefsEvents, EVENTS } from "@/lib/events";
-import {useTheme} from "@react-navigation/native";
+import {
+    fetchHomeResorts,
+    updateHomeResorts,
+    type HomeResortsResponse,
+} from "@/lib/homeResorts";
 import getStyles from "@/assets/styles/styles";
+import { PrefsEvents, EVENTS } from "@/lib/events";
+
+type Row = { slug: string; key: string; name: string };
+
+function useAllResortRows(): Row[] {
+    const { allResorts } = useSelectedResort();
+
+    return React.useMemo(() => {
+        return (allResorts ?? [])
+            .map((r: any) => ({
+                slug: String(r.slug),       // logical ID
+                key: String(r.id),          // ALWAYS UNIQUE
+                name: String(
+                    r.resort_name ??
+                    r.name ??
+                    `Resort ${r.slug}`
+                ),
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [allResorts]);
+}
+
+type CheckboxProps = {
+    checked: boolean;
+    onToggle: () => void;
+    disabled?: boolean;
+    label?: string;
+};
+
+function Checkbox({ checked, onToggle, disabled, label }: CheckboxProps) {
+    return (
+        <TouchableOpacity
+            onPress={onToggle}
+            disabled={disabled}
+            style={[
+                styles.checkbox,
+                disabled && { opacity: 0.4 },
+                checked && styles.checkboxChecked,
+            ]}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked, disabled: !!disabled }}
+            accessibilityLabel={label}
+        >
+            {checked ? <Text style={styles.checkboxTick}>✓</Text> : null}
+        </TouchableOpacity>
+    );
+}
 
 export default function HomeResortSelector() {
-    const { allResorts } = useSelectedResort();
-    const { tier, allowedHomeResorts } = useSubscription();
+    const { colors } = useTheme();
+    const stylesTheme = getStyles(colors as any);
+    const rows = useAllResortRows();
+    const { tier } = useSubscription();
+    const [loading, setLoading] = React.useState(true);
+    const [saving, setSaving] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
 
-    const {colors} = useTheme();
-    const styles = getStyles(colors as any);
-    const [selected, setSelected] = useState<string[]>([]);
-    const [savedIds, setSavedIds] = useState<string[]>([]);
-    const [saving, setSaving] = useState(false);
-    const [used, setUsed] = useState(0);
-    const [resetTs, setResetTs] = useState<number | null>(null);
+    const [homes, setHomes] = React.useState<HomeResortsResponse | null>(null);
 
-    // hydrate saved selection + quota on mount
-    useEffect(() => {
-        (async () => {
-            const ids = await loadHomeResorts();
-            setSavedIds(ids);
-            setSelected(ids);
-            const q = await getActiveQuota();
-            setUsed(q.used);
-            setResetTs(await nextResetAt());
-        })();
-    }, []);
+    const [subsSet, setSubsSet] = React.useState<Set<string>>(new Set());
+    const [freeSet, setFreeSet] = React.useState<Set<string>>(new Set());
 
-    // NEW ⬇️ react to quota/home resets (e.g., after subscription expiry)
-    useEffect(() => {
-        const reloadQuota = async () => {
-            const q = await getActiveQuota();
-            setUsed(q.used);
-            setResetTs(await nextResetAt());
-        };
-        const reloadHomes = async () => {
-            const ids = await loadHomeResorts();
-            setSavedIds(ids);
-            setSelected(ids);
-        };
+    let subsCap = 0;
+    let freeCap = Number(homes?.limits?.free ?? 0);
 
-        const onQuotaReset = () => { void reloadQuota(); };
-        const onHomesChanged = () => { void reloadQuota(); void reloadHomes(); };
+    if (tier === "free") {
+        // free tier → NO subscribed homes
+        subsCap = 0;
+    }
 
-        PrefsEvents.on(EVENTS.HOME_QUOTA_RESET, onQuotaReset);
-        PrefsEvents.on(EVENTS.HOME_RESORTS_CHANGED, onHomesChanged);
-        return () => {
-            PrefsEvents.off(EVENTS.HOME_QUOTA_RESET, onQuotaReset);
-            PrefsEvents.off(EVENTS.HOME_RESORTS_CHANGED, onHomesChanged);
-        };
-    }, []);
+    if (tier === "standard" || tier === "pro") {
+        subsCap = Number(homes?.limits?.subscribed ?? 0);
+    }
 
-    const maxHomes = useMemo(
-        () => (allowedHomeResorts === "all" ? Infinity : allowedHomeResorts),
-        [allowedHomeResorts]
-    );
+    if (tier === "premium") {
+        subsCap = Infinity;
+    }
 
-    // Premium can have all homes; auto-select all if empty
-    useEffect(() => {
-        if (maxHomes === Infinity && (allResorts?.length ?? 0) > 0 && selected.length === 0) {
-            setSelected((allResorts ?? []).map(r => String(r.resort_id)));
-        }
-    }, [maxHomes, allResorts?.length]);
+    const subsCount = subsSet.size;
+    const freeCount = freeSet.size;
 
-    const toggle = (id: string) => {
-        setSelected(prev => {
-            const has = prev.includes(id);
-            if (has) return prev.filter(r => r !== id);
-            if (maxHomes !== Infinity && prev.length >= maxHomes) {
-                Alert.alert(
-                    "Limit reached",
-                    `Your ${tier.toUpperCase()} plan allows ${maxHomes} home resort${maxHomes > 1 ? "s" : ""}.`
-                );
-                return prev;
-            }
-            return [...prev, id];
-        });
-    };
+    const canAddSubscribed = subsCount < subsCap;
+    const canAddFree = freeCount < freeCap;
 
-    // --- Weekly change enforcement on SAVE ---
-    const cap = weeklyChangeCap(tier as any);
-    const remaining =
-        cap === "unlimited" ? Infinity : Math.max(0, cap - used);
-
-    const mustAllowOne =
-        tier === "none" && savedIds.length === 0; // no subscription + no saved home
-    const effectiveRemaining =
-        cap === "unlimited"
-            ? Infinity
-            : Math.max(mustAllowOne ? 1 : 0, remaining);
-    // additions only (symmetric diff subset we care about)
-    const pendingChanges = useMemo(() => {
-        const saved = new Set(savedIds);
-        let adds = 0;
-        for (const id of selected) {
-            if (!saved.has(id)) adds++;
-        }
-        return adds;
-    }, [savedIds.join("|"), selected.join("|")]);
-
-
-    const handleSave = async () => {
-        // ⬇️ use effectiveRemaining instead of remaining
-        if (cap !== "unlimited" && pendingChanges > effectiveRemaining) {
-            const resetDate = resetTs ? new Date(resetTs) : null;
-            const nice = resetDate
-                ? resetDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                : "soon";
-            Alert.alert(
-                "Weekly limit reached",
-                `You have ${effectiveRemaining} addition${
-                    effectiveRemaining === 1 ? "" : "s"
-                } left this week, but this update needs ${pendingChanges}. You can add more after ${nice}.`
-            );
-            return;
-        }
+    // LOAD
+    const load = React.useCallback(async () => {
+        setLoading(true);
+        setError(null);
 
         try {
-            setSaving(true);
-            await saveHomeResorts(selected);
-            setSavedIds(selected);
+            const res = await fetchHomeResorts();
 
-            if (cap !== "unlimited" && pendingChanges > 0) {
-                const q = await consumeChanges(pendingChanges);
-                setUsed(q.used);
-                setResetTs(q.windowStart + 7 * 24 * 60 * 60 * 1000);
-            }
+            console.log("🔥 Fetch homes:", res);
 
-            Alert.alert("Saved!", "Your home resort preferences have been updated.");
+            setHomes(res);
+
+            const subs = (res.subscribed_ids ?? []).map(String);
+            const frees = (res.free_ids ?? []).map(String);
+
+            setSubsSet(new Set(subs));
+            setFreeSet(new Set(frees));
+        } catch (e: any) {
+            setError(e?.message ?? "Failed to load home resorts.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    React.useEffect(() => void load(), [load]);
+
+    // ----- TOGGLES -----
+    const toggleSubscribed = (slug: string) => {
+        const nextSubs = new Set(subsSet);
+        const nextFree = new Set(freeSet);
+
+        if (nextSubs.has(slug)) {
+            nextSubs.delete(slug);
+        } else {
+            if (!canAddSubscribed) return;
+            nextSubs.add(slug);
+            nextFree.delete(slug);
+        }
+
+        setSubsSet(nextSubs);
+        setFreeSet(nextFree);
+    };
+
+    const toggleFree = (slug: string) => {
+        const nextSubs = new Set(subsSet);
+        const nextFree = new Set(freeSet);
+
+        if (nextFree.has(slug)) {
+            nextFree.delete(slug);
+        } else {
+            if (!canAddFree) return;
+            nextFree.add(slug);
+            nextSubs.delete(slug);
+        }
+
+        setFreeSet(nextFree);
+        setSubsSet(nextSubs);
+    };
+
+    // DIRTY CHECK
+    const dirty =
+        !!homes &&
+        (
+            JSON.stringify([...subsSet].sort()) !==
+            JSON.stringify([...((homes.subscribed_ids ?? []).map(String))].sort())
+            ||
+            JSON.stringify([...freeSet].sort()) !==
+            JSON.stringify([...((homes.free_ids ?? []).map(String))].sort())
+        );
+
+    // SAVE
+    const onSave = async () => {
+        if (!dirty) return;
+        setSaving(true);
+        setError(null);
+
+        try {
+            await updateHomeResorts({
+                subscribed_ids: [...subsSet],
+                free_ids: [...freeSet],
+            });
+
+            await load();
+            PrefsEvents.emit(EVENTS.HOME_RESORTS_CHANGED);
+        } catch (e: any) {
+            setError(e?.message ?? "Failed to save changes.");
         } finally {
             setSaving(false);
         }
     };
 
-    const resorts = (allResorts ?? []).filter(Boolean);
-    const atHomesCap = maxHomes !== Infinity && selected.length >= maxHomes;
+    // REVERT
+    const onRevert = () => {
+        if (!homes) return;
+
+        const subs = (homes.subscribed_ids ?? []).map(String);
+        const frees = (homes.free_ids ?? []).map(String);
+
+        setSubsSet(new Set(subs));
+        setFreeSet(new Set(frees));
+    };
+
+    // LISTEN FOR EVENTS
+    React.useEffect(() => {
+        const reload = () => void load();
+        PrefsEvents.on(EVENTS.HOME_RESORTS_CHANGED, reload);
+        PrefsEvents.on(EVENTS.HOME_QUOTA_RESET, reload);
+
+        return () => {
+            PrefsEvents.off(EVENTS.HOME_RESORTS_CHANGED, reload);
+            PrefsEvents.off(EVENTS.HOME_QUOTA_RESET, reload);
+        };
+    }, [load]);
+
+    // ----- UI -----
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { padding: 16 }]}>
+                <ActivityIndicator />
+                <Text style={{ marginTop: 8, color: colors.text }}>
+                    Loading home resorts…
+                </Text>
+            </View>
+        );
+    }
 
     return (
-        <View style={styles.homeResWrap}>
-            <Text style={styles.homeResHeading}>
-                Choose your Home Resort{maxHomes === Infinity ? "s" : ""}
-            </Text>
-
-            <Text style={styles.homeResSubheading}>
-                {tier === "none"
-                    ? "Free users may select one home resort."
-                    : tier === "standard"
-                        ? "Standard users can select up to two."
-                        : tier === "pro"
-                            ? "Pro users can select up to four."
-                            : "Premium users have all resorts."}
-            </Text>
-
-            <View style={styles.homeResChangesPill}>
-                <Text style={styles.homeResChangesText}>
-                    Changes left this week: {effectiveRemaining === Infinity ? "∞" : effectiveRemaining}
-                    {resetTs
-                        ? ` • Resets ${new Date(resetTs).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                        })}`
-                        : ""}
-                </Text>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={styles.descriptionRow}>
+                <Text style={styles.descriptionText}>Choose your Fave and Free Resorts</Text>
+            </View>
+            <View style={styles.headerRow}>
+                <Text style={[styles.headerCell, { width: 100 }]}>Fave</Text>
+                <Text style={[styles.headerCell, { width: 80 }]}>Free</Text>
+                <Text style={[styles.headerCell, { flex: 1 }]}>Resort</Text>
             </View>
 
-            <View>
-                {resorts.map((item) => {
-                    const id = String(item.resort_id);
-                    const checked = selected.includes(id);
-                    const lockAdd = !checked && atHomesCap;
+            <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+                {rows.map((r) => {
+                    const isSub = subsSet.has(r.slug);
+                    const isFree = freeSet.has(r.slug);
+
+                    const subDisabled = !isSub && !canAddSubscribed;
+                    const freeDisabled = !isFree && !canAddFree;
+
                     return (
-                        <TouchableOpacity
-                            key={id}
-                            onPress={() => !lockAdd && toggle(id)}
-                            style={[styles.row, lockAdd && { opacity: 0.5 }]}
-                            accessibilityRole="checkbox"
-                            accessibilityState={{ checked, disabled: lockAdd }}
-                        >
-                            <Checkbox
-                                value={checked}
-                                onValueChange={() => toggle(id)}
-                                color={checked ? "#2E7D32" : undefined}
-                                disabled={lockAdd}
-                            />
-                            <View style={{ flex: 1, marginLeft: 10 }}>
-                                <Text style={styles.homeResName}>{item.resort_name}</Text>
-                                <Text style={styles.homeResSubText}>{item.location}</Text>
+                        <View key={r.key} style={styles.row}>
+                            <View style={{ width: 100, alignItems: "center" }}>
+                                <Checkbox
+                                    checked={isSub}
+                                    onToggle={() => toggleSubscribed(r.slug)}
+                                    disabled={subDisabled}
+                                    label={`${r.name} favorite`}
+                                />
                             </View>
-                        </TouchableOpacity>
+
+                            <View style={{ width: 80, alignItems: "center" }}>
+                                <Checkbox
+                                    checked={isFree}
+                                    onToggle={() => toggleFree(r.slug)}
+                                    disabled={freeDisabled}
+                                    label={`${r.name} free`}
+                                />
+                            </View>
+
+                            <View style={{ flex: 1, justifyContent: "center" }}>
+                                <Text style={styles.nameText}>{r.name}</Text>
+                            </View>
+                        </View>
                     );
                 })}
-            </View>
+            </ScrollView>
 
-            <TouchableOpacity
-                onPress={handleSave}
-                style={[styles.homeResSaveBtn, saving && { opacity: 0.7 }]}
-                disabled={saving}
-            >
-                <Text style={styles.homeResSaveText}>
-                    {saving ? "Saving…" : `Save (${pendingChanges} change${pendingChanges === 1 ? "" : "s"})`}
+            {homes && (
+                <View style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
+                    <Text style={{ color: colors.text, opacity: 0.8 }}>
+                        Fave:{" "}
+                        {subsCap === Infinity ? "All allowed" : `${subsCount}/${subsCap}`}
+                        {" • "}
+                        Free: {freeCount}/{freeCap}
+                    </Text>
+                </View>
+            )}
+
+            {!!error && (
+                <Text
+                    style={{
+                        color: "#B00020",
+                        paddingHorizontal: 12,
+                        marginBottom: 8,
+                    }}
+                >
+                    {error}
                 </Text>
-            </TouchableOpacity>
+            )}
+
+            <View style={[styles.actionRow, { paddingHorizontal: 12 }]}>
+                <TouchableOpacity
+                    onPress={onRevert}
+                    style={[stylesTheme.statusBtnSecondary, { minWidth: 120 }]}
+                    disabled={saving || !dirty}
+                >
+                    <Text style={stylesTheme.statusBtnSecondaryText}>Revert</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={onSave}
+                    style={[
+                        stylesTheme.statusBtn,
+                        { minWidth: 120, opacity: saving || !dirty ? 0.7 : 1 },
+                    ]}
+                    disabled={saving || !dirty}
+                >
+                    {saving ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={stylesTheme.statusBtnText}>Save</Text>
+                    )}
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: { borderRadius: 12, overflow: "hidden" },
+    descriptionText:{
+        color: "#2E7D32",
+        fontWeight: "700",
+    },
+    descriptionRow: {
+        flexDirection: "row",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "#999",
+        backgroundColor: "#E8F5E9",
+    },
+    headerRow: {
+        flexDirection: "row",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "#999",
+        backgroundColor: "rgba(0,0,0,0.05)",
+    },
+    headerCell: {
+        fontWeight: "700",
+        color: "#444",
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+        fontSize: 12,
+    },
+    row: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "rgba(0,0,0,0.08)",
+    },
+    nameText: { fontSize: 16, color: "#222" },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 4,
+        borderWidth: 2,
+        borderColor: "#6B7280",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#fff",
+    },
+    checkboxChecked: {
+        backgroundColor: "#2563EB",
+        borderColor: "#2563EB",
+    },
+    checkboxTick: {
+        color: "#fff",
+        fontWeight: "800",
+        lineHeight: 18,
+    },
+    actionRow: {
+        paddingVertical: 12,
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 10,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: "rgba(0,0,0,0.08)",
+    },
+});

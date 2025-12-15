@@ -1,158 +1,123 @@
 import 'react-native-reanimated';
-import BottomSheet, {BottomSheetScrollView} from '@gorhom/bottom-sheet';
-import React, {useEffect, useRef, useState, useMemo} from 'react';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     SafeAreaView,
     Button,
-    Image,
-    Platform, TouchableOpacity
+    Platform,
+    TouchableOpacity,
+    StatusBar,
 } from 'react-native';
-import MapView, {Polyline, PROVIDER_GOOGLE} from 'react-native-maps';
-import getStyles from '@/assets/styles/styles';
+import MapView, { Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { LatLng } from 'react-native-maps';
 import polyline from '@mapbox/polyline';
-import {LatLng} from 'react-native-maps';
-import CameraList from '@/components/CameraList'
-import {Link, router} from "expo-router";
-import {
-    parkingCameras,
-    featuredCameras,
-    fetchAlertsEvents,
-    fetchDirections,
-    fetchAlerts,
-    fetchTravelData, fetchTravelDataTo, fetchTravelDataFrom
-} from "@/hooks/UseRemoteService";
-import {useSelectedResort} from "@/context/ResortContext"
-import {Alerts, AlertsEvents, TravelTimes, UdotCamera} from "@/constants/types"
-import {useTheme} from '@react-navigation/native';
-import YouTubeTileBlockedPlayer from "@/components/YouTubeTileBlockedPlayer";
-import ParkingHours from "@/components/ParkingHours";
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {StatusBar} from 'react-native';
+import { router } from 'expo-router';
+import { useTheme } from '@react-navigation/native';
+
+import getStyles from '@/assets/styles/styles';
+import CameraList from '@/components/CameraList';
+import YouTubeTile from '@/components/YouTubeTiles';
+import YouTubeTileBlockedPlayer from '@/components/YouTubeTileBlockedPlayer';
+import ParkingHours from '@/components/ParkingHours';
 import BrandedLoader from '@/components/BrandedLoader';
 import Header from '@/components/Header';
-import {useStepProgress} from '@/utils/useStepProgress';
-import BannerHeaderAd from "@/components/BannerHeaderAd";
-import {useSubscription} from "@/context/SubscriptionContext";
-import YouTubeTile from "@/components/YouTubeTiles";
-import ConditionsEventsBlock from "@/components/ConditionsEventsBlock";
-import WeatherSection from "@/components/WeatherSection";
-import FloatingSettingsButton from "@/components/FloatingSettingsButton";
-import { loadHomeResorts } from "@/lib/userPrefs";
-import {useEffectiveAccess} from "@/hooks/useEffectiveAccess";
+import { useStepProgress } from '@/utils/useStepProgress';
+import BannerHeaderAd from '@/components/BannerHeaderAd';
+import ConditionsEventsBlock from '@/components/ConditionsEventsBlock';
+import WeatherSection from '@/components/WeatherSection';
+import FloatingSettingsButton from '@/components/FloatingSettingsButton';
+
+import { useSelectedResort } from '@/context/ResortContext';
+import { useSubscription } from '@/context/SubscriptionContext';
+
+import {
+    featuredCameras,
+    parkingCameras,
+    fetchAlertsEvents,
+    fetchAlerts,
+    fetchTravelData,
+    fetchTravelDataTo,
+    fetchTravelDataFrom, fetchSigns,
+} from '@/hooks/UseRemoteService';
+
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PrefsEvents, EVENTS } from '@/lib/events';
+import {
+    fetchHomeResorts,
+    type HomeResortsResponse,
+} from '@/lib/homeResorts';
+import { effectiveAccess } from '@/lib/access';
+import {Alerts, AlertsEvents, SignResponse, TravelTimes, UdotCamera} from '@/constants/types';
+import SignDisplay from "@/components/SignDisplay";
+
+type Direction = 'to' | 'from';
 
 export default function ToResortMap() {
-
-    const {isSubscribed} = useSubscription();
-    const [coords, setCoords] = useState<LatLng[]>([]);
-    const [loading, setLoading] = useState(false);
-    const {progress, reset, next} = useStepProgress(6);
-    const {colors} = useTheme();
+    const { ready, tier, isSubscribed, status } = useSubscription();
+    const { resort, loading: resortLoading } = useSelectedResort();
+    const { colors } = useTheme();
     const styles = getStyles(colors as any);
-    const {resort, loading: resortLoading} = useSelectedResort();
-    const [travelData, setTravelData] = useState<TravelTimes | null>(null);
+
+    // Map & UI
     const mapRef = useRef<MapView | null>(null);
     const [mapReady, setMapReady] = useState(false);
-    const sheetRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ['28%', '50%', '90%'], []);
+    const [coords, setCoords] = useState<LatLng[]>([]);
+    const [loading, setLoading] = useState(false);
+    const { progress, reset, next } = useStepProgress(5);
+
+    // Data
+    const [travelData, setTravelData] = useState<TravelTimes | null>(null);
     const [cameras, setCameras] = useState<UdotCamera[]>([]);
     const [camerasParking, setParkingCameras] = useState<UdotCamera[]>([]);
+    const [cameraRefreshNonce, setCameraRefreshNonce] = useState(0);
     const [alertsEvents, setAlertsEvents] = useState<AlertsEvents | null>(null);
     const [weatherAlerts, setAlerts] = useState<Alerts | null>(null);
-    const handleCollapse = () => {
-        sheetRef.current?.snapToIndex(0);
-    };
-    const [camNonce, setCamNonce] = useState(0);
-    type Direction = "to" | "from";
-    const [selectedDir, setSelectedDir] = useState<Direction>("to");
+
+    // Homes from server (truth)
+    const [homes, setHomes] = useState<HomeResortsResponse | null>(null);
+
+    // Access rules (SINGLE SOURCE OF TRUTH),
+    // but guard until homes have finished loading.
+    const access = homes
+        ? effectiveAccess(resort, homes, tier)
+        : { fullAccess: false, weatherAccess: false, travelAccess: false };
+
+    const { fullAccess, weatherAccess, travelAccess } = access;
+
+    // only premium or subscribed home may see both directions
+    const canSeeBothDirections = fullAccess;
+
+    // Direction toggle + cooldown (for non-full access)
+    const [selectedDir, setSelectedDir] = useState<Direction>('to');
     const COOLDOWN_MS = 5 * 60 * 1000;
     const [lastFromSwitchAt, setLastFromSwitchAt] = useState<number | null>(null);
     const [nowTs, setNowTs] = useState<number>(Date.now());
-
-    const { canUseSub } = useEffectiveAccess(resort?.resort_id, isSubscribed);
-
-    useEffect(() => {
-        const id = setInterval(() => setNowTs(Date.now()), 1000);
-        return () => clearInterval(id);
-    }, []);
-
-
-
     const remainingMs =
-        !canUseSub && lastFromSwitchAt
+        !fullAccess && lastFromSwitchAt
             ? Math.max(0, lastFromSwitchAt + COOLDOWN_MS - nowTs)
             : 0;
-
     const toggleDisabled = remainingMs > 0;
 
-    function mergeTravel(
-        prev: TravelTimes | null | undefined,
-        patch: Partial<TravelTimes>,
-        dir?: Direction
-    ): TravelTimes {
-        const base: TravelTimes = {
-            to_resort: prev?.to_resort ?? 0,
-            from_resort: prev?.from_resort ?? 0,
-            traffic: prev?.traffic,
-            departure_point: prev?.departure_point,
-            parking: prev?.parking,
-            weather: prev?.weather,
-        } as TravelTimes;
+    // Sheet
+    const sheetRef = useRef<BottomSheet>(null);
+    const snapPoints = useMemo(() => ['28%', '50%', '90%'], []);
+    const handleCollapse = () => sheetRef.current?.snapToIndex(0);
+    const [sheetScrollEnabled, setSheetScrollEnabled] = useState(true);
+    const onTextZoomStart = () => setSheetScrollEnabled(false);
+    const onTextZoomEnd = () => setSheetScrollEnabled(true);
 
-        // meta fields (always refresh from patch if present)
-        if (patch.traffic !== undefined) base.traffic = patch.traffic as any;
-        if (patch.departure_point !== undefined) base.departure_point = patch.departure_point as any;
-        if (patch.parking !== undefined) base.parking = patch.parking as any;
-        if (patch.weather !== undefined) base.weather = patch.weather as any;
-
-        // times
-        if (dir === "to" && patch.to_resort !== undefined) {
-            base.to_resort = String(patch.to_resort);
-        } else if (dir === "from" && patch.from_resort !== undefined) {
-            base.from_resort = String(patch.from_resort);
-        } else {
-            // full payload (subscribed case)
-            if (patch.to_resort !== undefined) base.to_resort = String(patch.to_resort);
-            if (patch.from_resort !== undefined) base.from_resort = String(patch.from_resort);
-        }
-
-        return base;
-    }
-
-    const onSelectDir = async (dir: Direction) => {
-        if (!resort) return;
-        if (canUseSub) {
-            setSelectedDir(dir);
-            return;
-        }
-        if (toggleDisabled) return;
-
-        setSelectedDir(dir);
-
-        if (dir === "to") {
-            // if we don't have it yet or you want fresh
-            if (travelData?.to_resort == null) {
-                const v = await fetchTravelDataTo(resort);
-                setTravelData(prev => mergeTravel(prev, {to_resort: v.to_resort}, "to"));
-            }
-        } else {
-            if (travelData?.from_resort == null) {
-                const v = await fetchTravelDataFrom(resort);
-                setTravelData(prev => mergeTravel(prev, {from_resort: v.from_resort}, "from"));
-            }
-            // start your 8-min cooldown here if you haven't already
-            setLastFromSwitchAt(Date.now());
-        }
+    // Insets / time display
+    const insets = useSafeAreaInsets();
+    const topInset = insets.top || StatusBar.currentHeight || 20;
+    const dateOpts: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
     };
-
-    function fmt(ms: number) {
-        const s = Math.ceil(ms / 1000);
-        const m = Math.floor(s / 60);
-        const r = s % 60;
-        return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
-    }
 
     const FALLBACK_REGION = {
         latitude: 40.577,
@@ -161,135 +126,195 @@ export default function ToResortMap() {
         longitudeDelta: 0.15,
     };
 
-    const [sheetScrollEnabled, setSheetScrollEnabled] = useState(true);
-    const onTextZoomStart = () => setSheetScrollEnabled(false);
-    const onTextZoomEnd = () => setSheetScrollEnabled(true);
-
-    const insets = useSafeAreaInsets();
-    const topInset = insets.top || StatusBar.currentHeight || 20;
-    const dateOpts: Intl.DateTimeFormatOptions = {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
+    const fmt = (ms: number) => {
+        const s = Math.ceil(ms / 1000);
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
     };
 
-    const getSubs = async () => {
-        router.replace('/tabs/rc_subscriptions');
+    const getSubs = () => router.replace('/tabs/rc_subscriptions');
+
+    // Homes loader
+    useEffect(() => {
+        let mounted = true;
+        const loadHomes = async () => {
+            try {
+                const r = await fetchHomeResorts();
+                if (mounted) setHomes(r);
+            } catch (e) {
+                // ignore; UI still functions
+            }
+        };
+        if (ready && resort) loadHomes();
+
+        const onChange = () => { void loadHomes(); };
+        PrefsEvents.on(EVENTS.HOME_RESORTS_CHANGED, onChange);
+        return () => {
+            mounted = false;
+            PrefsEvents.off(EVENTS.HOME_RESORTS_CHANGED, onChange);
+        };
+    }, [ready, resort]);
+
+    const refreshCameras = async () => {
+        if (!resort) return;
+
+        try {
+            const udot = await featuredCameras(resort);
+            setCameras(udot.cameras);
+            next();
+
+            const park = await parkingCameras(resort);
+            setParkingCameras(park.cameras);
+            next();
+
+            // bump nonce so CameraList reloads images
+            setCameraRefreshNonce((n) => n + 1);
+        } catch (err) {
+            console.warn("Camera refresh failed:", err);
+        }
     };
 
+    // Fetch resort data bundle
     const fetchResortDirections = async () => {
         if (!resort) return;
         setLoading(true);
         reset();
 
         try {
-            // 1) Directions + other panels (unchanged)
-            const googleResponse = await fetchDirections(resort);
-            const route = googleResponse.routes[0];
-            const points = decodePolyline(route.overview_polyline.points);
-            setCoords(points);
-            next(); // 1/6
+            await refreshCameras();
 
-            const udotCameraData = await featuredCameras(resort);
-            setCameras(udotCameraData.cameras);
-            setCamNonce((n) => n + 1);
-            next(); // 2/6
-
-            const parkingCameraData = await parkingCameras(resort);
-            setParkingCameras(parkingCameraData.cameras);
-            next(); // 3/6
-
-            const alertsEventsResponse = await fetchAlertsEvents(resort);
-            setAlertsEvents(alertsEventsResponse.alerts_events);
-            next(); // 4/6
+            const ae = await fetchAlertsEvents(resort);
+            setAlertsEvents(ae.alerts_events);
+            next();
 
             const wa = await fetchAlerts(resort);
             setAlerts(wa);
-            next(); // 5/6
+            next();
 
-            // 2) Travel times/meta
-            if (canUseSub) {
-                const v = await fetchTravelData(resort); // full payload (both directions)
+            // Travel times/meta
+            if (fullAccess) {
+                const v = await fetchTravelData(resort, 'all'); // both directions at once
                 setTravelData(v);
+                if ((v as any).overview_polyline) {
+                    setCoords(decodePolyline((v as any).overview_polyline));
+                }
                 next();
             } else {
-                // meta + ONLY selected direction
-                const meta = await fetchTravelData(resort);
-                setTravelData(prev => mergeTravel(prev, meta));
-
-                if (selectedDir === "to") {
+                if (selectedDir === 'to') {
                     const v = await fetchTravelDataTo(resort);
-                    setTravelData(prev => mergeTravel(prev, { to_resort: v.to_resort }, "to"));
+                    setTravelData(v);
+                    if ((v as any).overview_polyline) setCoords(decodePolyline((v as any).overview_polyline));
                 } else {
                     const v = await fetchTravelDataFrom(resort);
-                    setTravelData(prev => mergeTravel(prev, { from_resort: v.from_resort }, "from"));
+                    setTravelData(v);
+                    if ((v as any).overview_polyline) setCoords(decodePolyline((v as any).overview_polyline));
                 }
                 next();
             }
         } catch (err) {
-            console.log("Error fetching directions:", err);
+            console.log('Error fetching directions:', err);
         } finally {
             setLoading(false);
         }
     };
 
-
+    // Map fit
     useEffect(() => {
         if (!mapReady || !coords.length) return;
         const id = requestAnimationFrame(() =>
             mapRef.current?.fitToCoordinates(coords, {
-                edgePadding: {top: 80, right: 24, bottom: 220, left: 24},
+                edgePadding: { top: 80, right: 24, bottom: 220, left: 24 },
                 animated: true,
-            })
+            }),
         );
         return () => cancelAnimationFrame(id);
     }, [mapReady, coords]);
 
+    // Initial fetch when ready
     useEffect(() => {
-        if (!resortLoading && resort) {
-            fetchResortDirections().then();
+        if (ready && !resortLoading && resort && homes) {
+            void fetchResortDirections();
         }
-    }, [resortLoading, resort]);
+    }, [ready, resortLoading, resort, homes, fullAccess, selectedDir]);
 
+    // Cooldown ticker
+    useEffect(() => {
+        const id = setInterval(() => setNowTs(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    // Direction choose (non-full only)
+    const onSelectDir = async (dir: Direction) => {
+        if (!resort) return;
+        if (canSeeBothDirections) {
+            setSelectedDir(dir);
+            return;
+        }
+        if (toggleDisabled) return;
+
+        setSelectedDir(dir);
+
+        try {
+            if (dir === 'to') {
+                if (travelData?.to_resort == null) {
+                    const v = await fetchTravelDataTo(resort);
+                    setTravelData(v);
+                    if ((v as any).overview_polyline) setCoords(decodePolyline((v as any).overview_polyline));
+                }
+            } else {
+                if (travelData?.from_resort == null) {
+                    const v = await fetchTravelDataFrom(resort);
+                    setTravelData(v);
+                    if ((v as any).overview_polyline) setCoords(decodePolyline((v as any).overview_polyline));
+                }
+                setLastFromSwitchAt(Date.now());
+            }
+        } catch {
+            // ignore
+        }
+    };
 
     if (resortLoading || loading) {
         return (
-            <SafeAreaView style={{flex: 1, backgroundColor: '#fff' /* or LightPalette.background */}}>
-                <BrandedLoader progress={progress} message="Sending fastest runners to prepare route…"/>
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+                <BrandedLoader progress={progress} message="Sending fastest runners to prepare route…" />
             </SafeAreaView>
         );
     }
+
     return (
-        <SafeAreaView style={{flex: 1, backgroundColor: '#e6f3f8'}}>
-            <View style={[styles.map_view, {flex: 1}]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#e6f3f8' }}>
+            <View style={[styles.map_view, { flex: 1 }]}>
                 <MapView
                     ref={mapRef}
-                    provider={Platform.OS === 'ios' ? undefined : PROVIDER_GOOGLE}              // ← enum, not "google"
+                    provider={Platform.OS === 'ios' ? undefined : PROVIDER_GOOGLE}
                     style={StyleSheet.absoluteFillObject}
                     showsTraffic
                     initialRegion={{
-                        latitude: coords[0]?.latitude ?? FALLBACK_REGION.latitude,
-                        longitude: coords[0]?.longitude ?? FALLBACK_REGION.longitude,
-                        latitudeDelta: FALLBACK_REGION.latitudeDelta,
-                        longitudeDelta: FALLBACK_REGION.longitudeDelta,
+                        latitude: coords[0]?.latitude ?? 40.577,
+                        longitude: coords[0]?.longitude ?? -111.655,
+                        latitudeDelta: 0.15,
+                        longitudeDelta: 0.15,
                     }}
                     onMapLoaded={() => {
                         setMapReady(true);
                         if (coords.length) {
                             requestAnimationFrame(() =>
                                 mapRef.current?.fitToCoordinates(coords, {
-                                    edgePadding: {top: 80, right: 24, bottom: 220, left: 24},
+                                    edgePadding: { top: 80, right: 24, bottom: 220, left: 24 },
                                     animated: true,
-                                })
+                                }),
                             );
                         }
                     }}
                 >
-                    <Polyline coordinates={coords} strokeWidth={6} strokeColor="#4285F4"/>
+                    <Polyline coordinates={coords} strokeWidth={6} strokeColor="#4285F4" />
                 </MapView>
             </View>
+
             <FloatingSettingsButton />
+
             <BottomSheet
                 ref={sheetRef}
                 index={0}
@@ -297,92 +322,104 @@ export default function ToResortMap() {
                 topInset={topInset}
                 enablePanDownToClose={false}
                 enableContentPanningGesture={sheetScrollEnabled}
-                handleIndicatorStyle={{backgroundColor: colors.border || '#cfd8dc'}}
-                backgroundStyle={[styles.sheetBackground, {backgroundColor: '#8ec88e'}]}
+                handleIndicatorStyle={{ backgroundColor: colors.border || '#cfd8dc' }}
+                backgroundStyle={[styles.sheetBackground, { backgroundColor: '#8ec88e' }]}
             >
-                <BottomSheetScrollView contentContainerStyle={styles.cameraContainer}
-                                       showsVerticalScrollIndicator={false}
-                                       scrollEnabled={sheetScrollEnabled}
-                                       style={{backgroundColor: "#fff"}}>
-                    <BannerHeaderAd/>
-                    <Header message={"Travel Times:"} onRefresh={fetchResortDirections} colors={colors}
-                            resort={resort?.resort_name} showRefresh={canUseSub}/>
+                <BottomSheetScrollView
+                    contentContainerStyle={styles.cameraContainer}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={sheetScrollEnabled}
+                    style={{ backgroundColor: '#fff' }}
+                >
+                    <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
+                    <Header
+                        message={'Travel Times:'}
+                        onRefresh={fetchResortDirections}
+                        colors={colors}
+                        resort={resort?.resort_name}
+                        showRefresh={fullAccess}
+                    />
+
                     {travelData && (
-                        <View style={styles.travelInfoPanel} key={23}>
-                            {!canUseSub && (
+                        <View style={styles.travelInfoPanel} key="travel">
+                            {/* FREE: direction toggle + cooldown (no access) */}
+                            {!canSeeBothDirections && (
                                 <>
-                                    <View style={[styles.row, {marginTop: 8, gap: 8}]}>
+                                    <View style={[styles.row, { marginTop: 8, gap: 8 }]}>
                                         <TouchableOpacity
-                                            onPress={() => onSelectDir("to")}
+                                            onPress={() => onSelectDir('to')}
                                             disabled={toggleDisabled}
-                                            style={{
-                                                paddingVertical: 6,
-                                                paddingHorizontal: 12,
-                                                borderRadius: 16,
-                                                backgroundColor:
-                                                    selectedDir === "to" ? "#4285F4" : toggleDisabled ? "#eceff1" : "#cfd8dc",
-                                                opacity: toggleDisabled ? 0.7 : 1,
-                                            }}
+                                            style={[
+                                                styles.dirBtn,
+                                                selectedDir === 'to'
+                                                    ? styles.dirBtnActive
+                                                    : toggleDisabled
+                                                        ? styles.dirBtnDisabled
+                                                        : styles.dirBtnIdle,
+                                                toggleDisabled && { opacity: 0.7 },
+                                            ]}
                                         >
-                                            <Text style={{color: selectedDir === "to" ? "#fff" : "#000"}}>To
-                                                resort</Text>
+                                            <Text style={{ color: selectedDir === 'to' ? '#fff' : '#000' }}>To resort</Text>
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
-                                            onPress={() => onSelectDir("from")}
+                                            onPress={() => onSelectDir('from')}
                                             disabled={toggleDisabled}
-                                            style={{
-                                                paddingVertical: 6,
-                                                paddingHorizontal: 12,
-                                                borderRadius: 16,
-                                                backgroundColor:
-                                                    selectedDir === "from" ? "#4285F4" : toggleDisabled ? "#eceff1" : "#cfd8dc",
-                                                opacity: toggleDisabled ? 0.7 : 1,
-                                            }}
+                                            style={[
+                                                styles.dirBtn,
+                                                selectedDir === 'from'
+                                                    ? styles.dirBtnActive
+                                                    : toggleDisabled
+                                                        ? styles.dirBtnDisabled
+                                                        : styles.dirBtnIdle,
+                                                toggleDisabled && { opacity: 0.7 },
+                                            ]}
                                         >
-                                            <Text style={{color: selectedDir === "from" ? "#fff" : "#000"}}>From
-                                                resort</Text>
+                                            <Text style={{ color: selectedDir === 'from' ? '#fff' : '#000' }}>From resort</Text>
                                         </TouchableOpacity>
                                     </View>
 
                                     {toggleDisabled && (
-                                        <Text style={[styles.panelSubtext, {marginTop: 6}]}>
+                                        <Text style={[styles.panelSubtext, { marginTop: 6 }]}>
                                             🔒 Switching disabled for {fmt(remainingMs)}
                                         </Text>
                                     )}
                                 </>
                             )}
+
+                            {/* Single row display */}
                             <View style={styles.row}>
-                                {canUseSub ? (
+                                {canSeeBothDirections ? (
                                     <>
                                         <Text style={styles.label}>To:</Text>
-                                        <Text style={styles.timeValue}>{travelData?.to_resort ?? "—"} mins</Text>
+                                        <Text style={styles.timeValue}>{travelData?.to_resort ?? '—'} mins</Text>
                                         <Text style={styles.label}>From:</Text>
-                                        <Text style={styles.timeValue}>{travelData?.from_resort ?? "—"} mins</Text>
+                                        <Text style={styles.timeValue}>{travelData?.from_resort ?? '—'} mins</Text>
                                     </>
-                                ) : selectedDir === "to" ? (
+                                ) : selectedDir === 'to' ? (
                                     <>
                                         <Text style={styles.label}>To:</Text>
-                                        <Text style={styles.timeValue}>{travelData?.to_resort ?? "—"} mins</Text>
+                                        <Text style={styles.timeValue}>{travelData?.to_resort ?? '—'} mins</Text>
+                                        <Text style={styles.label}>From:</Text>
+                                        <Text style={styles.timeValue}>{travelData?.from_resort ?? '—'} mins</Text>
                                     </>
                                 ) : (
                                     <>
+                                        <Text style={styles.label}>To:</Text>
+                                        <Text style={styles.timeValue}>{travelData?.to_resort ?? '—'} mins</Text>
                                         <Text style={styles.label}>From:</Text>
-                                        <Text style={styles.timeValue}>{travelData?.from_resort ?? "—"} mins</Text>
+                                        <Text style={styles.timeValue}>{travelData?.from_resort ?? '—'} mins</Text>
                                     </>
                                 )}
-
                             </View>
 
                             <Text style={styles.panelHeader}>Traffic Information:</Text>
                             {travelData.traffic && (
                                 <View>
+                                    <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 5 }}>Alerts:</Text>
 
-                                    <Text style={{fontSize: 14, fontWeight: "bold", marginBottom: 5}}>
-                                        Alerts:
-                                    </Text>
                                     {alertsEvents && alertsEvents.alerts.length > 0 ? (
-                                        <View style={styles.alertSection}>
+                                        <View style={styles.alertSectionResort}>
                                             {alertsEvents.alerts.map((alert, idx) => (
                                                 <Text key={idx} style={styles.alertText}>
                                                     ⚠️ {alert.title}
@@ -392,46 +429,44 @@ export default function ToResortMap() {
                                     ) : (
                                         <View>
                                             <View style={styles.summaryCard}>
-                                                <Text style={styles.panelSubtext}>
-                                                    Traffic Highlights:
-                                                </Text>
+                                                <Text style={styles.panelSubtext}>Traffic Highlights:</Text>
                                                 <Text style={styles.infoText}>{travelData.traffic}</Text>
                                             </View>
-                                            <Text style={styles.noAlertText}>
-                                                ✅ No alerts reported.
-                                            </Text>
+                                            <Text style={styles.noAlertText}>✅ No alerts reported.</Text>
                                             <Text style={styles.exAlertText}>
                                                 Alert Example: Roads open at ..., Avalanche closure... Moose on road ...
                                             </Text>
                                         </View>
                                     )}
 
-                                    <View style={{marginTop: 20}}>
+                                    <View style={{ marginTop: 20 }}>
                                         <Text style={styles.panelHeader}>Live Cameras</Text>
 
                                         <CameraList
                                             cameras={cameras}
                                             styles={styles}
-                                            isSubscribed={canUseSub}
-                                            maxForSubscribed={3} // show all when subscribed (default). Set a number to cap.
+                                            isSubscribed={travelAccess}     // free homes: false
+                                            maxForSubscribed={3}
                                             onUnlock={getSubs}
-                                            refreshNonce={camNonce}
+                                            refreshNonce={cameraRefreshNonce}
                                         />
                                     </View>
-                                    <BannerHeaderAd/>
+
+                                    <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+
                                     <ConditionsEventsBlock
                                         data={alertsEvents}
-                                        isSubscribed={canUseSub}
-                                        showAll={false}               // or true, if you want to reveal everything for subs
+                                        isSubscribed={travelAccess}       // free homes: false
+                                        showAll={travelAccess}
                                         onPressSubscribe={getSubs}
                                         styles={styles}
                                     />
-
                                 </View>
                             )}
+
                             <Text style={styles.panelHeader}>Parking:</Text>
                             {(camerasParking ?? []).map((parkCam, i) =>
-                                canUseSub ? (
+                                fullAccess ? (
                                     <YouTubeTile
                                         key={`yt-sub-${String(parkCam.Id)}-${i}`}
                                         title={parkCam.Location}
@@ -447,42 +482,44 @@ export default function ToResortMap() {
                                         previewSeconds={30}
                                         showRefresh={false}
                                         ctaLabel="Subscribe for the full stream"
-                                        onPressCTA={() => router.replace("/tabs/rc_subscriptions")}
+                                        onPressCTA={() => router.replace('/tabs/rc_subscriptions')}
                                     />
                                 )
                             )}
 
+                            <ParkingHours parking={travelData?.parking} />
 
-                            <ParkingHours parking={travelData?.parking}/>
-                            <BannerHeaderAd style={{marginTop: 10, marginBottom: 10}}/>
+                            <BannerHeaderAd style={{ marginTop: 10, marginBottom: 10 }} ios_id={"ca-app-pub-6336863096491370/5184950439"} android_id={"ca-app-pub-6336863096491370/8584493915"} />
+
                             <WeatherSection
-                                alerts={weatherAlerts}
+                                alerts={weatherAlerts?.alerts ?? []}
                                 hourly={travelData.weather?.hourly}
                                 summary={travelData.weather?.summary}
-                                isSubscribed={canUseSub}
-                                showAll={false}                         // set true to show more hourly rows for subs
+                                isSubscribed={weatherAccess}          // free homes: false
+                                showAll={weatherAccess}
                                 onPressSubscribe={getSubs}
-                                onPressSeeMore={() => router.push("/tabs/weather")}  // or your weather route
+                                onPressSeeMore={() => router.push('/tabs/weather')}
                             />
 
-                            <Text
-                                style={styles.footerText}>Updated: {new Date().toLocaleString(undefined, dateOpts)}</Text>
+                            <Text style={styles.footerText}>
+                                Updated: {new Date().toLocaleString(undefined, dateOpts)}
+                            </Text>
                         </View>
-                    )
-                    }
+                    )}
+
                     {/* Controls */}
-                    <View style={[styles.buttonRowBottom, {marginBottom: 50, marginLeft: 10}]}>
-                        <Button title="Collapse" onPress={handleCollapse}/>
+                    <View style={[styles.buttonRowBottom, { marginBottom: 50, marginLeft: 10 }]}>
+                        <Button title="Collapse" onPress={handleCollapse} />
                     </View>
-                    <BannerHeaderAd/>
+                    <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
                 </BottomSheetScrollView>
             </BottomSheet>
         </SafeAreaView>
     );
-
 }
 
 function decodePolyline(encoded: string) {
     const points = polyline.decode(encoded);
-    return points.map(([latitude, longitude]) => ({latitude, longitude}));
+    return points.map(([latitude, longitude]) => ({ latitude, longitude }));
 }
+

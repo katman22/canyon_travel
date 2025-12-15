@@ -1,55 +1,46 @@
-import React, { useMemo } from 'react';
-import { View, Text, Dimensions } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { useTheme } from '@react-navigation/native';
-import getStyles from '@/assets/styles/styles';
+import React from "react";
+import { View, Text, Dimensions } from "react-native";
+import { WebView } from "react-native-webview";
 
-const YouTubeTile = ({
-                         title,
-                         streamId,
-                         description,
-                     }: {
+type Props = {
     title: string;
-    streamId: string;        // YouTube video id like "4a-3iEM7bHk"
+    streamId: string;        // Just "4a-3iEM7bHk"
     description?: string;
-}) => {
-    const h = Dimensions.get('window').width * 0.5625; // 16:9
-    const { colors } = useTheme();
-    const styles = getStyles(colors as any);
+};
 
-    // Use nocookie + a minimal param set; add modestbranding and rel=0
-    const url = useMemo(() => (
-        `https://www.youtube-nocookie.com/embed/${streamId}` +
-        `?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`
-    ), [streamId]);
+export default function YouTubeTile({ title, streamId, description }: Props) {
+    // Bigger video: 70% of screen width
+    const w = Dimensions.get("window").width;
+    const h = w * 0.55; // taller than 16:9 for better readability
+
+    // Clean streamId (remove any ?si)
+    const cleanId = streamId.split("?")[0];
+
+    const liveUrl = `https://www.youtube.com/watch/${cleanId}?autoplay=1&playsinline=1&controls=1&fs=1`;
 
     return (
-        <View style={styles.tile}>
-            <Text style={styles.title}>{title}</Text>
-            {!!description && <Text style={styles.description}>{description}</Text>}
+        <View style={{ paddingVertical: 12 }}>
+            <Text style={{ fontSize: 20, fontWeight: "600", marginBottom: 6 }}>
+                {title}
+            </Text>
             <WebView
-                source={{ uri: url }}
-                style={{ height: h, width: '100%', borderRadius: 10, overflow: 'hidden' }}
+                source={{ uri: liveUrl }}
+                style={{
+                    width: "100%",
+                    height: h,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    backgroundColor: "black",
+                }}
                 javaScriptEnabled
                 domStorageEnabled
                 allowsInlineMediaPlayback
                 allowsFullscreenVideo
                 mediaPlaybackRequiresUserAction={false}
-                originWhitelist={['*']}
-                // Keep only YouTube domains inside the WebView
-                onShouldStartLoadWithRequest={(req) => {
-                    const u = req.url || '';
-                    return (
-                        u.startsWith('about:blank') ||
-                        u.includes('youtube.com') ||
-                        u.includes('youtube-nocookie.com') ||
-                        u.includes('ytimg.com') ||
-                        u.includes('googleusercontent.com')
-                    );
-                }}
+                originWhitelist={["*"]}
+                allowsProtectedMedia
+                mixedContentMode="always"
             />
         </View>
     );
-};
-
-export default YouTubeTile;
+}

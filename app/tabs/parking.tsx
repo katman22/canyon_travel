@@ -3,16 +3,14 @@ import React, {useEffect, useRef, useState, useMemo} from 'react';
 import {
     View,
     Text,
-    ActivityIndicator,
-    SafeAreaView, ScrollView, StatusBar, StyleSheet, ImageBackground, TouchableOpacity
+    SafeAreaView, ScrollView, StatusBar, StyleSheet, ImageBackground
 } from 'react-native';
 import getStyles from '@/assets/styles/styles';
 import {
-    parkingCameras,
-    fetchTravelData, fetchParkingProfile
+    parkingCameras, fetchParkingProfile
 } from "@/hooks/UseRemoteService";
 import {useSelectedResort} from "@/context/ResortContext"
-import {TravelTimes, UdotCamera, ParkingProfile} from "@/constants/types"
+import {UdotCamera, ParkingProfile} from "@/constants/types"
 import {useTheme} from '@react-navigation/native';
 import ParkingHours from "@/components/ParkingHours";
 import YouTubeTile from "@/components/YouTubeTiles";
@@ -21,7 +19,6 @@ import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import ParkingRules from "@/components/ParkingRules";
 import ParkingLinks from "@/components/ParkingLinks";
 import ParkingFaqs from "@/components/ParkingFaqs";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
 import Header from "@/components/Header";
@@ -30,24 +27,30 @@ import YouTubeTileBlockedPlayer from "@/components/YouTubeTileBlockedPlayer";
 import {router} from "expo-router";
 import {useSubscription} from "@/context/SubscriptionContext";
 import FloatingSettingsButton from "@/components/FloatingSettingsButton";
-import {useEffectiveAccess} from "@/hooks/useEffectiveAccess";
+import {EMPTY_OPS} from "@/constants/types"
+import {fetchHomeResorts, HomeResortsResponse} from "@/lib/homeResorts";
+import {effectiveAccess} from "@/lib/access";
+import {PrefsEvents, EVENTS} from "@/lib/events";
+
 
 export default function Parking() {
     const [loading, setLoading] = useState(false);
     const {colors} = useTheme();
     const styles = getStyles(colors);
     const {resort, loading: resortLoading} = useSelectedResort();
-    const [travelData, setTravelData] = useState<TravelTimes | null>(null);
     const [camerasParking, setParkingCameras] = useState<UdotCamera[]>([]);
     const insets = useSafeAreaInsets();
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16); // tidy fallback
     const [profile, setProfile] = useState<ParkingProfile | null>(null);
-    const {progress, reset, next} = useStepProgress(5);
+    const {progress, reset, next} = useStepProgress(4);
 
     const sheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['30%', '100%'], []);
-    const { isSubscribed } = useSubscription();
-    const { canUseSub } = useEffectiveAccess(resort?.resort_id, isSubscribed);
+
+    const { tier, ready } = useSubscription();
+    const [homes, setHomes] = useState<HomeResortsResponse | null>(null);
+    const { fullAccess } = effectiveAccess(resort, homes, tier);
+
     const dateOpts: Intl.DateTimeFormatOptions = {
         month: "short",
         day: "numeric",
@@ -64,15 +67,12 @@ export default function Parking() {
         setLoading(true);
         reset();
         try {
-            const [cams, td, prof] = await Promise.all([
+            const [cams, prof] = await Promise.all([
                 parkingCameras(resort),
-                fetchTravelData(resort),
                 fetchParkingProfile(resort) // implement in your hook/service
             ]);
             next();
             setParkingCameras(cams.cameras);
-            next();
-            setTravelData(td);
             next();
             setProfile(prof.profile);
             next();
@@ -85,8 +85,30 @@ export default function Parking() {
     };
 
 
+    // Homes loader
     useEffect(() => {
-        if (!resortLoading && resort) {
+        let mounted = true;
+        const loadHomes = async () => {
+            try {
+                const r = await fetchHomeResorts();
+                if (mounted) setHomes(r);
+            } catch (e) {
+                // ignore; UI still functions
+            }
+        };
+        if (ready && resort) loadHomes();
+
+        const onChange = () => { void loadHomes(); };
+        PrefsEvents.on(EVENTS.HOME_RESORTS_CHANGED, onChange);
+        return () => {
+            mounted = false;
+            PrefsEvents.off(EVENTS.HOME_RESORTS_CHANGED, onChange);
+        };
+    }, [ready, resort]);
+
+
+    useEffect(() => {
+        if (!ready && resort) {
             fetchResortDirections();
         }
     }, [resortLoading, resort]);
@@ -123,15 +145,13 @@ export default function Parking() {
                 <BottomSheetScrollView contentContainerStyle={styles.cameraContainer}
                                        showsVerticalScrollIndicator={false}
                                        style={{backgroundColor: "#fff"}}>
-                    <BannerHeaderAd />
+                    <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
                     <Header message={"Activities:"} onRefresh={fetchResortDirections} colors={colors}
-                            resort={resort?.resort_name}/>
+                            resort={resort?.resort_name} showRefresh={true}/>
                     <ScrollView contentContainerStyle={styles.cameraContainer}>
-                        {travelData && (
-
                             <View key={23}>
                                 {(camerasParking ?? []).map((parkCam, i) =>
-                                    canUseSub ? (
+                                    fullAccess ? (
                                         <YouTubeTile
                                             key={`yt-sub-${String(parkCam.Id)}-${i}`}
                                             title={parkCam.Location}
@@ -151,7 +171,7 @@ export default function Parking() {
                                         />
                                     )
                                 )}
-                                <ParkingHours parking={travelData?.parking}/>
+                                <ParkingHours parking={{ operations: profile?.operations ?? EMPTY_OPS }}/>
                                 {/* RULES */}
                                 <ParkingRules rules={profile?.rules} title="Parking Rules"/>
 
@@ -168,10 +188,8 @@ export default function Parking() {
                                     : new Date().toLocaleString(undefined, dateOpts)}
                                 </Text>
                             </View>
-                        )
-                        }
                     </ScrollView>
-                    <BannerHeaderAd />
+                    <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
                 </BottomSheetScrollView>
             </BottomSheet>
         </SafeAreaView>

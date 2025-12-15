@@ -5,7 +5,7 @@ import getStyles from "@/assets/styles/styles";
 import type { Alerts, AlertWeather } from "@/constants/types";
 
 type Props = {
-    wAlerts?: Alerts | null;
+    wAlerts?: AlertWeather[] | [];
     maxToShow?: number;              // default 3
     showSampleWhenEmpty?: boolean;   // default true
 };

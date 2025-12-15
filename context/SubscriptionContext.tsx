@@ -1,12 +1,23 @@
 // context/SubscriptionContext.tsx
-import React, { createContext, useContext, useMemo, useRef, useEffect } from "react";
-import { Platform, AppState, AppStateStatus } from "react-native";
-import { useRevenueCat } from "@/hooks/useRevenueCat";
-import { clearHomeResorts, loadHomeResorts } from "@/lib/userPrefs";
-import { PrefsEvents, EVENTS } from "@/lib/events";
-import { resetHomeResortQuota } from "@/lib/homeResortQuota";
-type Tier = "none" | "standard" | "pro" | "premium";
-type SubStatus = "none" | "active" | "scheduled_cancel" | "billing_issue" | "expired";
+import React, {
+    createContext,
+    useContext,
+    useMemo,
+    useRef,
+    useEffect,
+    useState,
+    useCallback,
+} from "react";
+import {Platform, AppState, AppStateStatus} from "react-native";
+import {useRevenueCat} from "@/hooks/useRevenueCat";
+import {PrefsEvents, EVENTS} from "@/lib/events";
+import {fetchEntitlements, type ServerEntitlements} from "@/lib/entitlements";
+import {updateHomeResorts} from "@/lib/homeResorts";
+import Purchases from "react-native-purchases";
+import {apiAuth} from "@/lib/apiAuth";
+
+export type Tier = "free" | "standard" | "pro" | "premium";
+export type SubStatus = "none" | "active" | "scheduled_cancel" | "billing_issue" | "expired";
 
 type SubscriptionState = {
     ready: boolean;
@@ -14,159 +25,287 @@ type SubscriptionState = {
     tier: Tier;
     entitlements: string[];
     status: SubStatus;
-    expiresAt?: Date | null;       // present for scheduled_cancel / active with known expiration
-    willRenew?: boolean | null;    // mirrors RC’s willRenew for the picked entitlement
+    expiresAt?: Date | null;
+    willRenew?: boolean | null;
     allowedHomeResorts: number | "all";
     refresh: () => Promise<void>;
     restore: () => Promise<void>;
+    serverEntitlements?: ServerEntitlements;
+    setServerEntitlements: (e: ServerEntitlements | undefined) => void;
+    setEntitlementsFromSync: (e: ServerEntitlements) => void;
+    refreshServerEntitlements: () => Promise<void>;
+    afterPurchaseOrRestore: () => Promise<void>;
 };
 
 const SubscriptionContext = createContext<SubscriptionState | undefined>(undefined);
 
 const RC_API_KEY = Platform.select({
-    ios:     "appl_CGSkKUbeKLufJXnmTNildaLBClw",
+    ios: "appl_CGSkKUbeKLufJXnmTNildaLBClw",
     android: "goog_hDsZkRPwzRmXonNUoMkoWJHXUzd",
 })!;
 
-const tierFrom = (ents: string[]): Tier => {
-    const k = ents.map(s => s.toLowerCase());
-    if (k.some(x => x.includes("premium"))) return "premium";
-    if (k.some(x => x.includes("pro")))     return "pro";
-    if (k.some(x => x.includes("standard")))return "standard";
-    return "none";
+// ---------------- HELPER FUNCTIONS -----------------
+
+const tierFromRC = (ents: string[] | undefined): Tier => {
+    const k = (ents ?? []).map((s) => s.toLowerCase());
+    if (k.some((x) => x.includes("premium"))) return "premium";
+    if (k.some((x) => x.includes("pro"))) return "pro";
+    if (k.some((x) => x.includes("standard"))) return "standard";
+    return "free";
+};
+
+function pickEntitlementInfo(info: any) {
+    const all = info?.entitlements?.all ?? {};
+    const order = ["premium", "pro", "standard"];
+
+    // Prefer our known products first
+    for (const id of order) {
+        const e = all[id];
+        if (!e) continue;
+        if (e.isActive || e.willRenew === false || e.billingIssueDetectedAt) {
+            return {id, info: e};
+        }
+    }
+
+    // Fallback: any active key
+    const activeKey = Object.keys(all).find((k) => all[k]?.isActive);
+    if (activeKey) return {id: activeKey, info: all[activeKey]};
+
+    return null;
+}
+
+const capFromServer = (server?: ServerEntitlements): number | "all" | undefined => {
+    if (!server) return undefined;
+
+    const homes = server.features.find((f) => f.startsWith("homes:"));
+    if (homes) {
+        const raw = homes.split(":")[1];
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : "all";
+    }
+
+    switch (server.tier) {
+        case "premium":
+            return "all";
+        case "pro":
+            return 4;
+        case "standard":
+            return 2;
+        default:
+            return 1;
+    }
 };
 
 const capFromTier = (tier: Tier): number | "all" => {
     switch (tier) {
-        case "premium": return "all";
-        case "pro":     return 4;
-        case "standard":return 2;
-        default:        return 1;
+        case "premium":
+            return "all";
+        case "pro":
+            return 4;
+        case "standard":
+            return 2;
+        default:
+            return 1;
     }
 };
 
-// Pull the highest-priority active entitlement info from RC CustomerInfo
-function pickEntitlementInfo(info: any /* Purchases.CustomerInfo | null */) {
-    const all = info?.entitlements?.all ?? {};
-    // all is a map: { [entitlementId]: EntitlementInfo }
-    // Prefer highest plan first
-    const order = ["premium", "pro", "standard"];
-    for (const id of order) {
-        const e = all[id];
-        if (!e) continue;
-        // e.isActive covers current access; we still want this one for scheduled_cancel too
-        if (e.isActive || e.willRenew === false || e.billingIssueDetectedAt) {
-            return { id, info: e };
-        }
-    }
-    // fallback: if none matched, return the first active if any
-    const activeKey = Object.keys(all).find(k => all[k]?.isActive);
-    if (activeKey) return { id: activeKey, info: all[activeKey] };
-    return null;
-}
+const rank = (t: Tier): number =>
+    ({free: 0, standard: 1, pro: 2, premium: 3}[t]);
 
-export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-    const { configured, info, activeEntitlements, refresh, restore } = useRevenueCat({
+export function SubscriptionProvider({children}: { children: React.ReactNode, attStatus?: string | null }) {
+    const {
+        hasLoadedInfo,
+        info,
+        activeEntitlements,
+        refresh,
+        restore,
+    } = useRevenueCat({
         apiKey: RC_API_KEY,
         skuList: [],
         logLevel: __DEV__ ? "DEBUG" : "ERROR",
     });
 
-    const prevTierRef = useRef<Tier>("none");
+    const [serverEntitlements, setServerEntitlements] =
+        useState<ServerEntitlements | undefined>(undefined);
+
+    // Track prior tier to detect REAL transitions
+    const prevTierRef = useRef<Tier>("free");
+    const [initialized, setInitialized] = useState(false);
+
+    // --------- SERVER ENTITLEMENTS HELPERS ----------
+
+    const refreshServerEntitlements = useCallback(async () => {
+        try {
+            const e = await fetchEntitlements();
+            setServerEntitlements(e);
+        } catch (err) {
+            console.warn("[Subscription] refreshServerEntitlements failed:", err);
+        }
+    }, []);
+
+    const setEntitlementsFromSync = useCallback((entitlements: ServerEntitlements) => {
+        setServerEntitlements(entitlements);
+    }, []);
+
+    // --------- AFTER PURCHASE / RESTORE ---------
+
+    const afterPurchaseOrRestore = useCallback(async () => {
+        try {
+            const oldTier = serverEntitlements?.tier ?? "free";
+
+            // 1) Refresh RevenueCat + sync
+            await refresh();
+
+            // 2) Fetch server entitlements
+            const updated = await fetchEntitlements();
+            setServerEntitlements(updated);
+
+            const newTier = updated?.tier ?? "free";
+
+            if (newTier !== oldTier) {
+                // 3) Clear home resorts ONLY — no quotas anymore
+                await updateHomeResorts({
+                    subscribed_ids: [],
+                    free_ids: [],
+                });
+
+                PrefsEvents.emit(EVENTS.HOME_RESORTS_CHANGED);
+            }
+
+        } catch (err) {
+            console.error("afterPurchaseOrRestore FAILED:", err);
+        }
+    }, [refresh, serverEntitlements]);
+
+
+
+
+    // ---------- DERIVED SUBSCRIPTION STATE ----------
 
     const value = useMemo<SubscriptionState>(() => {
-        const ents = activeEntitlements ?? [];
-        const tier = tierFrom(ents);
+        const rcEnts = activeEntitlements ?? [];
+        const rcTier = tierFromRC(rcEnts);
+        const effTier: Tier = (serverEntitlements?.tier ?? rcTier) as Tier;
 
+        // Status
+        const chosen = pickEntitlementInfo(info);
         let status: SubStatus = "none";
         let expiresAt: Date | null | undefined = null;
         let willRenew: boolean | null | undefined = null;
 
-        const chosen = pickEntitlementInfo(info);
         if (chosen?.info) {
             const e = chosen.info;
             const isActive = !!e.isActive;
-            willRenew = e.willRenew ?? null;
+            const billingIssue = !!e.billingIssueDetectedAt;
             expiresAt = e.expirationDate ? new Date(e.expirationDate) : null;
+            willRenew = e.willRenew ?? null;
 
-            // 🚩 If there are NO active entitlements, prefer the steady "none" state.
-            const noEntitlements = ents.length === 0;
-
-            if (isActive && willRenew === true) {
-                status = "active";
-            } else if (isActive && willRenew === false) {
-                status = "scheduled_cancel";
-            } else if (e.billingIssueDetectedAt) {
-                status = "billing_issue";
-            } else if (noEntitlements) {
-                // Was expired earlier, but RC no longer shows any active entitlement → treat as "none"
-                status = "none";
-            } else if (!isActive && expiresAt && expiresAt <= new Date()) {
-                status = "expired"; // transient; will become "none" when ents array empties
-            } else {
-                status = ents.length > 0 ? "active" : "none";
-            }
+            if (billingIssue) status = "billing_issue";
+            else if (isActive && e.willRenew === true) status = "active";
+            else if (isActive && e.willRenew === false) status = "scheduled_cancel";
+            else if (expiresAt && expiresAt <= new Date()) status = "expired";
+            else if (rcEnts.length > 0) status = "active";
+            else status = "none";
         } else {
-            status = ents.length > 0 ? "active" : "none";
+            status = rcEnts.length > 0 ? "active" : "none";
         }
 
+        const isSubscribed = effTier !== "free" || rcEnts.length > 0;
+
         return {
-            ready: configured && !!info,
-            isSubscribed: ents.length > 0,
-            tier,
-            entitlements: ents,
+            ready: hasLoadedInfo && !!info,
+            isSubscribed,
+            tier: effTier,
+            entitlements: rcEnts,
             status,
             expiresAt,
             willRenew,
-            allowedHomeResorts: capFromTier(tier),
+            allowedHomeResorts:
+                capFromServer(serverEntitlements) ?? capFromTier(effTier),
             refresh,
             restore,
+            serverEntitlements,
+            setServerEntitlements,
+            refreshServerEntitlements,
+            setEntitlementsFromSync,
+            afterPurchaseOrRestore,
         };
-    }, [configured, info, activeEntitlements, refresh, restore]);
+    }, [
+        info,
+        activeEntitlements,
+        serverEntitlements,
+        hasLoadedInfo,
+        refresh,
+        restore,
+        afterPurchaseOrRestore,
+        refreshServerEntitlements,
+    ]);
 
+    // ---------- INITIALIZE PREV TIER ONCE ----------
 
-    // A) If tier DROPS while app is running, clear homes (you already had this)
     useEffect(() => {
+        if (!hasLoadedInfo || !info) return;
+        if (!initialized) {
+            prevTierRef.current = value.tier;
+            setInitialized(true);
+        }
+    }, [hasLoadedInfo, info, value.tier, initialized]);
+
+    // ---------- REAL DOWNGRADES ONLY (paid -> free) ----------
+
+    useEffect(() => {
+        if (!initialized) return;
+
         const prev = prevTierRef.current;
         const curr = value.tier;
-        const rank = (t: Tier) => ({ none:0, standard:1, pro:2, premium:3 }[t]);
+
+        if (curr === prev) return;
+
         if (rank(curr) < rank(prev)) {
             (async () => {
-                const homes = await loadHomeResorts();
-                if (homes.length > 1) {
-                    await clearHomeResorts();
-                    await resetHomeResortQuota();                      // ⬅️ reset weekly changes
+                console.log("[Subscription] REAL downgrade:", prev, "→", curr);
+
+                try {
+                    await updateHomeResorts({
+                        subscribed_ids: [],
+                        free_ids: [],
+                    });
+
                     PrefsEvents.emit(EVENTS.HOME_RESORTS_CHANGED);
-                    PrefsEvents.emit(EVENTS.HOME_QUOTA_RESET);         // ⬅️ notify UI
+
+                    await refreshServerEntitlements();
+
+                    console.log("[Subscription] Downgrade cleanup complete.");
+                } catch (err) {
+                    console.error("[Subscription] Downgrade cleanup failed:", err);
                 }
             })();
         }
-        prevTierRef.current = curr;
-    }, [value.tier]);
 
-    // B) If the app is reopened AFTER cancellation and the sub has *ended*,
-    //    refresh RC and enforce free rules.
+        prevTierRef.current = curr;
+    }, [value.tier, initialized, refreshServerEntitlements]);
+
+
+    // ---------- REFRESH RC ON FOREGROUND ----------
+
     useEffect(() => {
         let mounted = true;
+
         const onChange = async (state: AppStateStatus) => {
             if (!mounted || state !== "active") return;
-            try { await refresh(); } catch {}
-            const isExpiredNow =
-                value.status === "expired" || (!value.isSubscribed && value.tier === "none");
-
-            if (isExpiredNow) {
-                const homes = await loadHomeResorts();
-                if (homes.length > 1) {
-                    await clearHomeResorts();
-                    await resetHomeResortQuota();                      // ⬅️ reset weekly changes
-                    PrefsEvents.emit(EVENTS.HOME_RESORTS_CHANGED);
-                    PrefsEvents.emit(EVENTS.HOME_QUOTA_RESET);         // ⬅️ notify UI
-                }
+            try {
+                await refresh();
+            } catch (err) {
+                console.warn("[Subscription] refresh on foreground failed:", err);
             }
         };
+
         const sub = AppState.addEventListener("change", onChange);
-        return () => { mounted = false; sub.remove(); };
-    }, [refresh, value.status, value.isSubscribed, value.tier]);
+        return () => {
+            mounted = false;
+            sub.remove();
+        };
+    }, [refresh]);
 
     return (
         <SubscriptionContext.Provider value={value}>
@@ -177,6 +316,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
 export function useSubscription() {
     const ctx = useContext(SubscriptionContext);
-    if (!ctx) throw new Error("useSubscription must be used within SubscriptionProvider");
+    if (!ctx) {
+        throw new Error("useSubscription must be used within SubscriptionProvider");
+    }
     return ctx;
 }

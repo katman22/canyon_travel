@@ -1,73 +1,73 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// homeResortQuota.ts
+// Clean, entitlement-driven logic only.
+// No weekly windows, no reset timestamps, no quotas.
 
-const KEY_QUOTA = "prefs:home_resorts_quota"; // { windowStart:number(ms), used:number }
-const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-const KEY_WINDOW_START = "homeResortQuota:windowStart";
-const KEY_USED         = "homeResortQuota:used";
-const KEY_WINDOW = "home_quota:windowStartMs";
+import type { Tier } from "@/context/SubscriptionContext";
 
-export type Quota = { windowStart: number; used: number };
+// -----------------------------------------------------
+// 1. Allowed home resort counts per subscription tier
+// -----------------------------------------------------
+export function allowedHomeResortCount(tier: Tier): number {
+    switch (tier) {
+        case "free":
+            return 1;
 
-export async function loadQuota(): Promise<Quota> {
-    try {
-        const raw = await AsyncStorage.getItem(KEY_QUOTA);
-        if (!raw) return { windowStart: 0, used: 0 };
-        const parsed = JSON.parse(raw) as Partial<Quota>;
-        return {
-            windowStart: typeof parsed.windowStart === "number" ? parsed.windowStart : 0,
-            used: typeof parsed.used === "number" ? parsed.used : 0,
-        };
-    } catch {
-        return { windowStart: 0, used: 0 };
+        case "standard":
+            return 2;
+
+        case "pro":
+            return 4;
+
+        case "premium":
+            return 8;
+
+        default:
+            return 1;
     }
 }
 
-export async function saveQuota(q: Quota): Promise<void> {
-    await AsyncStorage.setItem(KEY_QUOTA, JSON.stringify(q));
+// -----------------------------------------------------
+// 2. Can the user add more home resorts?
+// -----------------------------------------------------
+export function canAddHomeResort(
+    currentHomeResorts: Set<string>,
+    tier: Tier
+): boolean {
+    return currentHomeResorts.size < allowedHomeResortCount(tier);
 }
 
-/** Ensures the 7-day window is fresh; resets if expired. Returns the active quota. */
-export async function getActiveQuota(now = Date.now()): Promise<Quota> {
-    const q = await loadQuota();
-    if (q.windowStart === 0 || now - q.windowStart >= WINDOW_MS) {
-        const fresh: Quota = { windowStart: now, used: 0 };
-        await saveQuota(fresh);
-        return fresh;
+// -----------------------------------------------------
+// 3. Remaining available home resort slots
+// -----------------------------------------------------
+export function remainingHomeResortSlots(
+    currentHomeResorts: Set<string>,
+    tier: Tier
+): number {
+    return Math.max(
+        0,
+        allowedHomeResortCount(tier) - currentHomeResorts.size
+    );
+}
+
+// -----------------------------------------------------
+// 4. Is the user at maximum capacity?
+// -----------------------------------------------------
+export function isAtHomeResortLimit(
+    currentHomeResorts: Set<string>,
+    tier: Tier
+): boolean {
+    return currentHomeResorts.size >= allowedHomeResortCount(tier);
+}
+
+// -----------------------------------------------------
+// 5. Should we show informational text in UI?
+// -----------------------------------------------------
+export function homeResortLimitDescription(tier: Tier): string {
+    const count = allowedHomeResortCount(tier);
+
+    if (tier === "free") {
+        return "Your free plan allows selecting 1 home resort.";
     }
-    return q;
-}
 
-/** Adds N changes into the current window (resets if window expired). */
-export async function consumeChanges(n: number, now = Date.now()): Promise<Quota> {
-    const q = await getActiveQuota(now);
-    const next: Quota = { windowStart: q.windowStart, used: q.used + n };
-    await saveQuota(next);
-    return next;
-}
-
-/** When does the current window reset? */
-export async function nextResetAt(now = Date.now()): Promise<number> {
-    const q = await getActiveQuota(now);
-    return q.windowStart + WINDOW_MS;
-}
-
-export async function resetChangesNow(): Promise<{ windowStart: number; used: number }> {
-    const now = Date.now();
-    // Option A (recommended): keep existing windowStart, only set used=0
-    const rawStart = await AsyncStorage.getItem(KEY_WINDOW_START);
-    const windowStart = rawStart ? Number(rawStart) : now;
-
-    await AsyncStorage.setItem(KEY_WINDOW_START, String(windowStart));
-    await AsyncStorage.setItem(KEY_USED, "0");
-
-    return { windowStart, used: 0 };
-}
-
-export async function resetHomeResortQuota(): Promise<void> {
-    const now = Date.now();
-    // Start a fresh window with 0 used
-    await AsyncStorage.multiSet([
-        [KEY_USED, JSON.stringify(0)],
-        [KEY_WINDOW, JSON.stringify(now)],
-    ]);
+    return `Your ${tier} plan allows selecting up to ${count} home resorts.`;
 }

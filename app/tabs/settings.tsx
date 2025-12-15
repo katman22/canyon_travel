@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import getStyles from '@/assets/styles/styles';
 import {useTheme} from "@react-navigation/native";
-import {useSelectedResort} from "@/context/ResortContext"
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import BrandedLoader from '@/components/BrandedLoader';
@@ -16,13 +15,13 @@ import {useSubscription} from "@/context/SubscriptionContext";
 import HomeResortSelector from "@/components/HomeResortSelector";
 import SubscriptionStatusCard from "@/components/SubscriptionStatusCard";
 import StoreLinksCard from "@/components/StoreLinksCard";
+import IdLoader from "@/components/IdLoader";
+import {SubscriptionLegalFooter} from "@/components/SubscriptionLegalFooter";
+
 export default function Settings() {
-    const { isSubscribed } = useSubscription();
-    const [loading, setLoading] = useState(false);
+    const { ready, tier, allowedHomeResorts } = useSubscription();
     const {colors} = useTheme();
     const styles = getStyles(colors);
-
-    const {resort, loading: resortLoading} = useSelectedResort();
     const insets = useSafeAreaInsets();
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16); // tidy fallback
     const {progress, reset, next} = useStepProgress(2);
@@ -30,9 +29,7 @@ export default function Settings() {
     const sheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['30%', '95%'], []);
 
-
-
-    if (loading || resortLoading) {
+    if (!ready) {
         return (
             <SafeAreaView style={{flex: 1, backgroundColor: '#fff' /* or LightPalette.background */}}>
                 <BrandedLoader progress={progress} message="Collecting Subscription information…"/>
@@ -66,11 +63,13 @@ export default function Settings() {
                         showsVerticalScrollIndicator={false}
                         style={{backgroundColor: "#fff"}}
                     >
-                        <BannerHeaderAd style={{marginBottom: 20}}/>
+                        <BannerHeaderAd style={{marginBottom: 20}} ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
                         <StoreLinksCard />
                         <SubscriptionStatusCard />
                         <HomeResortSelector />
-                        <BannerHeaderAd />
+                        <SubscriptionLegalFooter />
+                        <IdLoader />
+                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
                     </BottomSheetScrollView>
                 </BottomSheet>
             </View>

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class LargeWidgetProvider : AppWidgetProvider() {
     companion object {
-        const val ACTION_REFRESH = "com.wharepumanawa.canyon_travel.ACTION_REFRESH"
+        const val ACTION_REFRESH = "com.wharepumanawa.canyon_travel.ACTION_REFRESH_DARK"
     }
 
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {

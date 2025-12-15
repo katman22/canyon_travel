@@ -2,28 +2,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PrefsEvents, EVENTS } from "./events";
 
-const KEY_HOME_RESORTS = "prefs:home_resorts"; // array of resort_id as strings
+// legacy (v1) global key (kept for migration)
+const LEGACY_KEY_HOME_RESORTS = "prefs:home_resorts";
+const KEY_SUBS = "home_resorts:subscribed";
+const KEY_FREE = "home_resorts:free";
 
-export async function loadHomeResorts(): Promise<string[]> {
-    try {
-        const raw = await AsyncStorage.getItem(KEY_HOME_RESORTS);
-        if (!raw) return [];
-        const arr = JSON.parse(raw);
-        return Array.isArray(arr) ? arr.map(String) : [];
-    } catch {
-        return [];
-    }
-}
 
-export async function saveHomeResorts(ids: string[]): Promise<void> {
-    await AsyncStorage.setItem(KEY_HOME_RESORTS, JSON.stringify(ids.map(String)));
-    PrefsEvents.emit(EVENTS.HOME_RESORTS_CHANGED);
+// v2: per-user namespace
+let CURRENT_APP_USER_ID = "anon";
+export function setPrefsUser(id: string) {
+    CURRENT_APP_USER_ID = id || "anon";
 }
+const keyFor = (userId = CURRENT_APP_USER_ID) => `ct:v2:${userId}:home_resorts`;
 
-export async function clearHomeResorts(): Promise<void> {
-    try {
-        await AsyncStorage.removeItem(KEY_HOME_RESORTS);
-    } finally {
-        PrefsEvents.emit(EVENTS.HOME_RESORTS_CHANGED);
-    }
-}
+

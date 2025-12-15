@@ -8,6 +8,10 @@ import com.facebook.react.bridge.*
 class WidgetUpdaterModule(private val reactContext: ReactApplicationContext)
   : ReactContextBaseJavaModule(reactContext) {
 
+  companion object {
+      var pendingConfigActivity: WidgetConfigActivity? = null
+  }
+
   override fun getName(): String = "WidgetUpdater"
 
   init { Log.d("WidgetUpdater", "Native module constructed") }
@@ -51,6 +55,20 @@ class WidgetUpdaterModule(private val reactContext: ReactApplicationContext)
   }
 
   @ReactMethod
+  fun saveAuthForWidget(userId: String, jwt: String, promise: Promise) {
+    try {
+      val prefs = reactContext.getSharedPreferences("WIDGET_AUTH", Context.MODE_PRIVATE)
+      prefs.edit()
+        .putString("WIDGET_USER_ID", userId)
+        .putString("WIDGET_JWT", jwt)
+        .apply()
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("SAVE_AUTH_ERROR", e)
+    }
+  }
+
+  @ReactMethod
   fun getResortForWidget(widgetId: Int, promise: Promise) {
     try {
       val prefs = reactContext.getSharedPreferences(WidgetCore.PREFS, Context.MODE_PRIVATE)
@@ -78,6 +96,15 @@ class WidgetUpdaterModule(private val reactContext: ReactApplicationContext)
       promise.reject("UPDATE_WIDGETS_ERROR", e)
     }
   }
+
+  @ReactMethod
+    fun finishWidgetConfig(appWidgetId: Int) {
+        pendingConfigActivity?.let { activity ->
+            activity.completeConfig(appWidgetId)
+            pendingConfigActivity = null
+        }
+    }
+
 
   @ReactMethod
   fun updateWidgetById(widgetId: Int, promise: Promise) {

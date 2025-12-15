@@ -55,13 +55,24 @@ export default function HourlyForecastStrip({
 
     const hours = useMemo(() => {
         const arr = toArray(hourly);
-        // Some feeds give strings for number; ensure stable order by startTime/name
+
         const sorted = [...arr].sort((a, b) => {
             const aT = new Date(a.startTime || a.name || 0).getTime();
             const bT = new Date(b.startTime || b.name || 0).getTime();
             return aT - bT;
         });
-        return sorted.slice(1, limit);
+
+        // de-dupe by startTime
+        const seen = new Set<string>();
+        const unique = sorted.filter(h => {
+            const key = h.startTime || `${h.name}-${h.number}`;
+            if (!key) return true; // keep if we can't identify
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        return unique.slice(0, limit); // <- show first N, no dup hours
     }, [hourly, limit]);
 
     // Data for FlatList: hourly tiles + one "subscribe" tile at the end
@@ -76,11 +87,17 @@ export default function HourlyForecastStrip({
         <View style={{marginTop: 6, marginLeft: -10, marginBottom: 20}}>
             <FlatList
                 data={data}
-                keyExtractor={(row, i) =>
-                    row.type === "hour"
-                        ? (`${row.item.startTime}-short-strip-${prefix}` || `${row.item.name}-short-strip-${prefix}` || `${String(i)}-short-strip-${prefix}`)
-                        : `subscribe-${i}-short-strip-${prefix}`
-                }
+                keyExtractor={(row, i) => {
+                    if (row.type === "subscribe") {
+                        return `subscribe-${i}-short-strip-${prefix}`;
+                    }
+                    // row.type === "hour"
+                    const h = row.item;
+                    // make a stable-ish base from time or name/number
+                    const base = safeTimeKey(h, i); // t<epoch> or n<name>-<number> or i<idx>
+                    // then append index + prefix so that even duplicate startTimes become unique
+                    return `${base}-${i}-short-strip-${prefix}`;
+                }}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 nestedScrollEnabled   // helps Android inside BottomSheet

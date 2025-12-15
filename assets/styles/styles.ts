@@ -27,6 +27,7 @@ const getStyles = (colors: Theme["colors"]) => {
             zIndex: 99,
         },
         alertSection: {marginBottom: 10},
+        alertSectionResort: { gap: 4, paddingVertical: 4 },
         alertText: {
             color: c.danger ?? "#D00",
             fontWeight: "600",
@@ -158,6 +159,10 @@ const getStyles = (colors: Theme["colors"]) => {
             borderRadius: 0,
             paddingVertical: 0,
         },
+        dirBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16 },
+        dirBtnActive: { backgroundColor: '#4285F4' },
+        dirBtnIdle: { backgroundColor: '#cfd8dc' },
+        dirBtnDisabled: { backgroundColor: '#eceff1' },
 
         error: {color: c.danger ?? "red", marginTop: 20},
 
@@ -174,6 +179,7 @@ const getStyles = (colors: Theme["colors"]) => {
         eventHeader: {fontWeight: "bold", fontSize: 14, marginBottom: 6, color: c.text},
         eventMeta: {fontSize: 12, color: c.muted ?? "#444"},
         eventSection: {marginTop: 16},
+        exAlertText: { fontSize: 12, color: '#78909C', marginTop: 4 },
 
         fab: {
             position: "absolute",
@@ -457,10 +463,9 @@ const getStyles = (colors: Theme["colors"]) => {
             width: Dimensions.get("window").width,
             height: (Dimensions.get("window").height - 90) * (2 / 3),
         },
-        map_view: {...StyleSheet.absoluteFillObject, zIndex: 0},
+        map_view: {...StyleSheet.absoluteFillObject, zIndex: 0, backgroundColor: '#e8eef4'},
 
         noAlertText: {fontSize: 14, color: c.success ?? "green", marginBottom: 5},
-        exAlertText: {fontSize: 10, color: c.success ?? "#8ec88e", marginBottom: 10},
         name: {
             fontWeight: "600",
             color: "#222",

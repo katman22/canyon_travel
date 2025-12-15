@@ -20,21 +20,22 @@ export type Alert= {
   response: string;
 };
 
-export type TravelTimes= {
+export type TravelTimes = {
   resort: string;
-  to_resort: string;
-  from_resort: string;
+  to_resort: string | number;          // was string
+  from_resort: string | number;        // was string
   departure_point: string;
   parking: ParkingData;
   weather: WeatherData;
-  traffic: string;
+  traffic: string | string[];          // was string
+  overview_polyline?: string;          // ← NEW
   updated_at: string;
-}
+};
 
 export type WeatherData = {
   summary: string;
-  hourly: LocationHourlyForecast;
-}
+  hourly: ForecastPeriod[];            // was LocationHourlyForecast
+};
 
 export interface GoogleDirectionsResponse {
   routes: Route[];
@@ -191,6 +192,7 @@ export interface Resorts{
 export type Resort= {
   id: number;
   resort_id: string;
+  slug: string;
   resort_name: string;
   departure_point: string;
   latitude: number;
@@ -345,4 +347,4 @@ export type ParkingFAQ = {
   a: string;
 };
 
-
+export const EMPTY_OPS: OperatingHours = { operating_days: [], holiday_open_days: [] };

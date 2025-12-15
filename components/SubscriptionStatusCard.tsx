@@ -1,19 +1,19 @@
-import React, {useState} from "react";
-import {View, Text, TouchableOpacity, StyleSheet, ActivityIndicator} from "react-native";
+import React, {useEffect, useState} from "react";
+import {View, Text, TouchableOpacity, ActivityIndicator} from "react-native";
 import {useSubscription} from "@/context/SubscriptionContext";
 import {useRouter} from "expo-router";
 import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
 
 const BLURBS: Record<string, string> = {
-    none: "Free plan: choose 1 home resort and weekly changes are limited.",
-    standard: "Standard: up to 2 home resorts, 2 additions per week.",
-    pro: "Pro: up to 4 home resorts, 4 additions per week.",
-    premium: "Premium: all resorts and unlimited changes.",
+    free: "Free plan: Try it out and see how smooth your drive can be. Two free resorts of your choice.",
+    standard: "Standard: Know the best canyon before you leave. Two favorites two free.",
+    pro: "Pro: Your mountain, your plan, no guesswork. Four favorites, two free. Add a home screen widget for canyon conditions.",
+    premium: "Premium: Unlimited, all information, all resorts. Add widgets to your home screen.",
 };
 
 export default function SubscriptionStatusCard() {
-    const {ready, tier, entitlements, restore, refresh} = useSubscription();
+    const {ready, tier, entitlements, restore, refresh, afterPurchaseOrRestore} = useSubscription();
     const router = useRouter();
     const [working, setWorking] = useState<"restore" | "refresh" | null>(null);
 
@@ -23,6 +23,7 @@ export default function SubscriptionStatusCard() {
         try {
             setWorking("restore");
             await restore();
+            await doRefresh();
         } finally {
             setWorking(null);
         }
@@ -31,7 +32,11 @@ export default function SubscriptionStatusCard() {
     const doRefresh = async () => {
         try {
             setWorking("refresh");
-            await refresh();
+
+            // Step 1: refresh RevenueCat
+            await afterPurchaseOrRestore();
+
+
         } finally {
             setWorking(null);
         }

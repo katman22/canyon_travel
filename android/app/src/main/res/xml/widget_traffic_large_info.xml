@@ -6,6 +6,5 @@
     android:initialLayout="@layout/widget_traffic_large"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
-    android:configure="com.wharepumanawa.canyon_travel.WidgetConfigActivity"
 >
 </appwidget-provider>
