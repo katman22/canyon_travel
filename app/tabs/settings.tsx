@@ -14,7 +14,8 @@ import BannerHeaderAd from "@/components/BannerHeaderAd";
 import {useSubscription} from "@/context/SubscriptionContext";
 import HomeResortSelector from "@/components/HomeResortSelector";
 import SubscriptionStatusCard from "@/components/SubscriptionStatusCard";
-import StoreLinksCard from "@/components/StoreLinksCard";
+// @ts-ignore
+import StoreLinksCard from '@/components/StoreLinksCard';
 import IdLoader from "@/components/IdLoader";
 import {SubscriptionLegalFooter} from "@/components/SubscriptionLegalFooter";
 

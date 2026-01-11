@@ -1,5 +1,5 @@
 // lib/revenueCatSetup.ts
-import Purchases from "react-native-purchases";
+import Purchases, { LOG_LEVEL }  from "react-native-purchases";
 import { Platform } from "react-native";
 
 const RC_API_KEY = Platform.select({
@@ -15,6 +15,8 @@ let configured = false;
  */
 export async function configureRevenueCat() {
     if (configured) return;
+
+    Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
 
     Purchases.configure({
         apiKey: RC_API_KEY

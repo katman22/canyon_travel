@@ -11,7 +11,7 @@ import getStyles from "@/assets/styles/styles";
 import { useTheme } from "@react-navigation/native";
 import { fetchAlertsEvents, fetchSigns } from "@/hooks/UseRemoteService";
 import { useSelectedResort } from "@/context/ResortContext";
-import { AlertsEvents, SignResponse } from "@/constants/types";
+import { AlertsEvents, SignResponse, SnowPlow } from "@/constants/types";
 import SignDisplay from "@/components/SignDisplay";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -25,6 +25,8 @@ import { useSubscription } from "@/context/SubscriptionContext";
 import FloatingSettingsButton from "@/components/FloatingSettingsButton";
 import {effectiveAccess} from "@/lib/access";
 import {fetchHomeResorts, type HomeResortsResponse} from "@/lib/homeResorts";
+// @ts-ignore
+import SnowPlowMap from '@/components/SnowPlowMap';
 
 export default function Alerts_events() {
     const { tier, ready } = useSubscription();
@@ -32,7 +34,7 @@ export default function Alerts_events() {
     const [loading, setLoading] = useState(false);
     const { colors } = useTheme();
     const styles = getStyles(colors);
-
+    const [plows, setPlows] = useState<SnowPlow[]>([]);
     const { resort, loading: resortLoading } = useSelectedResort();
 
     const [alertsEvents, setAlertsEvents] = useState<AlertsEvents | null>(null);
@@ -41,13 +43,13 @@ export default function Alerts_events() {
     const insets = useSafeAreaInsets();
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
 
-    const { progress, reset, next } = useStepProgress(4);
+    const { progress, reset, next } = useStepProgress(5);
 
     const sheetRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["30%", "95%"], []);
+    const snapPoints = useMemo(() => ["30%", "80%"], []);
     const [homes, setHomes] = useState<HomeResortsResponse | null>(null);
     const { fullAccess } = effectiveAccess(resort, homes, tier);
-
+    const [sheetGesturesEnabled, setSheetGesturesEnabled] = useState(true);
     const getSubs = async () => {
         router.replace("/tabs/rc_subscriptions");
     };
@@ -65,6 +67,10 @@ export default function Alerts_events() {
             const alertsEventsResponse = await fetchAlertsEvents(resort);
             next(); // 1/4
             setAlertsEvents(alertsEventsResponse.alerts_events);
+            next();
+            console.log(alertsEventsResponse.plows);
+            const snowPlows = alertsEventsResponse?.plows?.snow_plows ?? [];
+            setPlows(snowPlows);
 
             const udotSigns = await fetchSigns(resort);
             next(); // 2/4
@@ -115,32 +121,45 @@ export default function Alerts_events() {
                 imageStyle={{ opacity: 0.75 }}
             />
 
+            {/* ✅ BASE MAP LAYER (same pattern as ToResortMap) */}
+            <View style={{ flex: 1 }}>
+                <SnowPlowMap
+                    plows={plows}
+                    isPro={fullAccess} // PRO+
+                    topOffset={120}
+                    onUpgrade={() => router.replace("/tabs/rc_subscriptions")}
+                />
+            </View>
+
             <FloatingSettingsButton />
 
-            <View style={{ flex: 1 }}>
-                <BottomSheet
-                    ref={sheetRef}
-                    index={snapPoints.length - 1}
-                    snapPoints={snapPoints}
-                    topInset={topInset}
-                    enablePanDownToClose={false}
-                    handleIndicatorStyle={{ backgroundColor: colors.border || "#cfd8dc" }}
-                    backgroundStyle={{ backgroundColor: "#8ec88e" }}
+            {/* ✅ BottomSheet overlays the map (DO NOT wrap in another flex:1 View) */}
+            <BottomSheet
+                ref={sheetRef}
+                index={snapPoints.length - 1}
+                snapPoints={snapPoints}
+                topInset={topInset}
+                enablePanDownToClose={false}
+                handleIndicatorStyle={{ backgroundColor: colors.border || "#cfd8dc" }}
+                backgroundStyle={{ backgroundColor: "#8ec88e" }}
+            >
+                <BottomSheetScrollView
+                    contentContainerStyle={styles.cameraContainer}
+                    showsVerticalScrollIndicator={false}
+                    style={{ backgroundColor: "#fff" }}
                 >
-                    <BottomSheetScrollView
-                        contentContainerStyle={styles.cameraContainer}
-                        showsVerticalScrollIndicator={false}
-                        style={{ backgroundColor: "#fff" }}
-                    >
-                        <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+                    <BannerHeaderAd
+                        ios_id={"ca-app-pub-6336863096491370/3525040945"}
+                        android_id={"ca-app-pub-6336863096491370/7271412245"}
+                    />
 
-                        <Header
-                            message={"Alerts:"}
-                            onRefresh={fetchAlertsAndEvents}
-                            colors={colors}
-                            resort={resort?.resort_name}
-                            showRefresh={true}
-                        />
+                    <Header
+                        message={"Alerts:"}
+                        onRefresh={fetchAlertsAndEvents}
+                        colors={colors}
+                        resort={resort?.resort_name}
+                        showRefresh={true}
+                    />
 
                         <Text style={[styles.textSmall, { marginBottom: 10 }]}>
                             Alerts, Events, Construction, Seasonal Road Info, In Route
@@ -207,12 +226,11 @@ export default function Alerts_events() {
                                     />
                                 )}
                             </View>
-                        </View>
 
+                        </View>
                         <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
                     </BottomSheetScrollView>
                 </BottomSheet>
-            </View>
         </SafeAreaView>
     );
 }

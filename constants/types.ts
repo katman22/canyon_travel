@@ -142,6 +142,7 @@ export interface UdotCameraResponse {
 }
 export interface AlertEventResponse {
   alerts_events: AlertsEvents;
+  plows: SnowPlowResponse
 }
 
 export interface AlertsEvents {
@@ -348,3 +349,57 @@ export type ParkingFAQ = {
 };
 
 export const EMPTY_OPS: OperatingHours = { operating_days: [], holiday_open_days: [] };
+
+export interface SnowPlowResponse {
+  snow_plows: SnowPlow[];
+}
+
+export type SnowPlow = {
+  id: number;
+  type: string;
+  name: string;
+  owner: string;
+  bearing: number;
+  latitude: number;
+  longitude: number;
+  polyline?: string | null;
+  updated_at: number;     // ISO timestamp
+};
+
+export type ProbabilityOfPrecipitation = {
+  unitCode: string;
+  value: number | null;
+};
+
+export type NullableMetric = {
+  unitCode: string;
+  value: number | null;
+};
+
+/* ---------- daily forecast period ---------- */
+
+export type DailyForecastPeriod = {
+  number: string;
+  name: string;
+  icon: string;
+  isDaytime: boolean;
+  temperature: number;
+  temperatureUnit: string;
+  shortForecast: string;
+  detailedForecast: string;
+  windSpeed: string;
+  windDirection: string;
+  startTime: string;
+
+  dewpoint: NullableMetric;
+  relativeHumidity: NullableMetric;
+  probabilityOfPrecipitation: ProbabilityOfPrecipitation;
+};
+
+/* ---------- daily forecast response ---------- */
+
+export type DailyForecastResponse = {
+    forecasts: DailyForecastPeriod[];
+};
+
+

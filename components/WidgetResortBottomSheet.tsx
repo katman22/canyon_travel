@@ -75,7 +75,7 @@ export default function WidgetResortBottomSheet({
                 ]}
                 ListHeaderComponent={
                     <>
-                        <BannerHeaderAd />
+                        <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
 
                         {selectedResort && (
                             <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
@@ -125,7 +125,7 @@ export default function WidgetResortBottomSheet({
                     <View
                         onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
                     >
-                        <BannerHeaderAd />
+                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
                     </View>
                 }
             />

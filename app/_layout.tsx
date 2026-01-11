@@ -14,6 +14,7 @@ import { SubscriptionProvider, useSubscription } from "@/context/SubscriptionCon
 import { bootstrapAuth } from "@/utils/bootstrapAuth";
 import BrandedLoader from "@/components/BrandedLoader";
 import { apiAuth } from "@/lib/apiAuth";
+// @ts-ignore
 import { UpdateRequiredScreen } from "@/context/UpdateRequiredScreen";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});

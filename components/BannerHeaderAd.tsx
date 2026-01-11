@@ -27,8 +27,6 @@ type HouseCampaign = {
     cta?: string;
 };
 
-// To keep App Store happy, point these at neutral landing pages or iOS pages,
-// not directly at Google Play for the iOS binary.
 const DEFAULT_CAMPAIGNS: HouseCampaign[] = [
     {
         id: "aura_promo_ad",

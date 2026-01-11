@@ -22,6 +22,10 @@ function fmtPct(n: number | null | undefined) {
 
 
 export default function CurrentForecastCard({ period, sun }: Props) {
+    const hasSun =
+        !!sun?.sunrise_sunset?.sunrise &&
+        !!sun?.sunrise_sunset?.sunset;
+
     const { colors } = useTheme();
     const styles = getStyles(colors);
     const iconUri = period?.icon;
@@ -50,6 +54,28 @@ export default function CurrentForecastCard({ period, sun }: Props) {
         }
         return "Forecast Summary";
     }, [period]);
+
+    const safeOpenSunrise = async () => {
+        const url = "https://sunrisesunset.io/";
+        try {
+            const canOpen = await Linking.canOpenURL(url);
+            if (canOpen) {
+                await Linking.openURL(url);
+            }
+        } catch (e) {
+            console.warn("Failed to open sunrise link", e);
+        }
+    };
+
+    if (!period) {
+        return (
+            <View style={{ padding: 12 }}>
+                <Text style={styles.infoText}>
+                    Current conditions temporarily unavailable.
+                </Text>
+            </View>
+        );
+    }
 
     return (
         <View
@@ -97,39 +123,49 @@ export default function CurrentForecastCard({ period, sun }: Props) {
             </View>
 
             {/* Sun times row */}
-            <View
-                style={{
-                    flexDirection: "row",
-                    marginTop: 10,
-                    paddingTop: 10,
-                    borderTopWidth: 1,
-                    borderTopColor: "#e5e7eb",
-                    columnGap: 14,
-                    flexWrap: "wrap",
-                }}
-            >
-                <SunStat label="Sunrise" value={String(sunrise)} />
-                <SunStat label="Sunset" value={String(sunset)} />
-                {sun?.sunrise_sunset.golden_hour ? <SunStat label="Golden hour" value={sun.sunrise_sunset.golden_hour} /> : null}
-                <TouchableOpacity
-                    style={{ marginTop: 12 }}
-                    onPress={() => Linking.openURL("https://sunrisesunset.io/")}
+            {hasSun && (
+                <View
+                    style={{
+                        flexDirection: "row",
+                        marginTop: 10,
+                        paddingTop: 10,
+                        borderTopWidth: 1,
+                        borderTopColor: "#e5e7eb",
+                        columnGap: 14,
+                        flexWrap: "wrap",
+                    }}
                 >
-                    <Text
-                        style={[
-                            styles.infoText,
-                            {
-                                fontSize: 12,
-                                textAlign: "right",
-                                color: colors.primary,
-                                textDecorationLine: "underline",
-                            },
-                        ]}
+                    <SunStat label="Sunrise" value={sun.sunrise_sunset.sunrise} />
+                    <SunStat label="Sunset" value={sun.sunrise_sunset.sunset} />
+
+                    {sun.sunrise_sunset.golden_hour && (
+                        <SunStat
+                            label="Golden hour"
+                            value={sun.sunrise_sunset.golden_hour}
+                        />
+                    )}
+
+                    <TouchableOpacity
+                        style={{ marginTop: 12 }}
+                        onPress={safeOpenSunrise}
                     >
-                        Powered by SunriseSunset.io
-                    </Text>
-                </TouchableOpacity>
-            </View>
+                        <Text
+                            style={[
+                                styles.infoText,
+                                {
+                                    fontSize: 12,
+                                    textAlign: "right",
+                                    color: colors.primary,
+                                    textDecorationLine: "underline",
+                                },
+                            ]}
+                        >
+                            Sunrise & sunset times
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
         </View>
     );
 }

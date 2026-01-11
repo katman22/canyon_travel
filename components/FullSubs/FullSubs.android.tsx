@@ -4,7 +4,7 @@ import {
     Text
 } from "react-native";
 import {
-    Alerts, type ForecastPeriod,
+    Alerts, DailyForecastPeriod, DailyForecastResponse, type ForecastPeriod,
     type SunriseSunset,
 } from "@/constants/types";
 import BannerHeaderAd from "@/components/BannerHeaderAd";
@@ -16,6 +16,7 @@ import FullForecastSummary from "@/components/FullForecastSummary";
 import {ScrollView} from "react-native-gesture-handler";
 import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
+import DailyForecastStrip from "@/components/DailyForecastStrip";
 
 type Props = {
     resort_name?: string;
@@ -24,7 +25,9 @@ type Props = {
     discussionShortData?: string;
     fetchResortWeather: () => void;
     weatherAlerts: Alerts | null;
+    combinedForecast?: string;
     sunTimes: SunriseSunset | null
+    dailyWeather?: DailyForecastPeriod[]
 };
 
 export default function FullSubsAndroid({
@@ -34,16 +37,21 @@ export default function FullSubsAndroid({
                                             weatherAlerts,
                                             discussionShortData,
                                             discussionLongData,
-                                            fetchResortWeather
+                                            fetchResortWeather,
+                                            dailyWeather,
+                                            combinedForecast
                                         }: Props) {
     const {colors} = useTheme();
     const styles = getStyles(colors);
 
     return (
         <ScrollView
-            contentContainerStyle={styles.cameraContainer}
             showsVerticalScrollIndicator={false}
-            style={{marginTop: 45}}
+            contentContainerStyle={{
+                backgroundColor: '#fff',
+                paddingBottom: 60,
+            }}
+            style={{ marginTop: 45 }}
         >
             <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
             <Header
@@ -53,26 +61,27 @@ export default function FullSubsAndroid({
                 resort={resort_name}
                 showRefresh={true}
             />
-            {discussionLongData && discussionShortData && hourlyWeather && (
+            {hourlyWeather && (
                 <View style={styles.travelInfoPanel} key="weather-panel">
-                    <Text style={[styles.panelSubtext, {fontWeight: "bold", marginTop: 15}]}>
+                    <Text style={[styles.panelSubtext, { fontWeight: "bold", marginTop: 15 }]}>
                         Alerts:
                     </Text>
-                    <FullWeatherAlerts wAlerts={weatherAlerts?.alerts ?? []}/>
+                    <FullWeatherAlerts wAlerts={weatherAlerts?.alerts ?? []} />
 
-                    <CurrentForecastCard period={hourlyWeather[0]} sun={sunTimes}/>
+                    <CurrentForecastCard period={hourlyWeather[0]} sun={sunTimes} />
 
-                    <FullHourlyForecastStrip hourly={hourlyWeather}/>
+                    <FullHourlyForecastStrip hourly={hourlyWeather} />
 
-                    <Text style={[styles.panelSubtext, {marginTop: 10, fontWeight: "bold"}]}>
-                        Current Forecast:
-                    </Text>
-                    <FullForecastSummary text={discussionShortData}/>
+                    <DailyForecastStrip daily={dailyWeather} />
 
-                    <Text style={[styles.panelSubtext, {marginTop: 10, fontWeight: "bold"}]}>
-                        Extended Forecast:
-                    </Text>
-                    <FullForecastSummary text={discussionLongData}/>
+                    {combinedForecast && (
+                        <>
+                            <Text style={[styles.panelSubtext, { marginTop: 10, fontWeight: "bold" }]}>
+                                Forecast Discussion:
+                            </Text>
+                            <FullForecastSummary text={combinedForecast} />
+                        </>
+                    )}
 
                     <Text style={styles.footerText}>
                         Updated: {new Date().toLocaleString(undefined, {

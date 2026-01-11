@@ -1,19 +1,17 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
 
 // @ts-ignore
-export function UpdateRequiredScreen({ payload }) {
+export default function UpdateRequiredScreen({ payload }) {
     const storeUrl =
-        payload.url ||
-        (Platform.OS === "ios"
-            ? "https://apps.apple.com/app/idXXXXXXXX"
-            : "https://play.google.com/store/apps/details?id=com.wharepumanawa.canyon_travel");
+        payload?.url ||
+        "https://play.google.com/store/apps/details?id=com.wharepumanawa.canyon_travel";
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Update Required</Text>
             <Text style={styles.message}>
-                {payload.message || "Please update Canyon Traveller to continue."}
+                {payload?.message || "Please update Canyon Traveller to continue."}
             </Text>
 
             <TouchableOpacity

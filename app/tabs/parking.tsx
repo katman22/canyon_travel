@@ -49,7 +49,7 @@ export default function Parking() {
 
     const { tier, ready } = useSubscription();
     const [homes, setHomes] = useState<HomeResortsResponse | null>(null);
-    const { fullAccess } = effectiveAccess(resort, homes, tier);
+    const fullAccess = homes ? effectiveAccess(resort, homes, tier).fullAccess : false;
 
     const dateOpts: Intl.DateTimeFormatOptions = {
         month: "short",
@@ -77,7 +77,7 @@ export default function Parking() {
             setProfile(prof.profile);
             next();
         } catch (err) {
-            console.log("Error fetching directions:", err);
+            console.log("Error fetching parking information:", err);
         } finally {
             setLoading(false);
             next();
@@ -108,9 +108,8 @@ export default function Parking() {
 
 
     useEffect(() => {
-        if (!ready && resort) {
-            fetchResortDirections();
-        }
+        if (resortLoading || !resort) return;
+        fetchResortDirections();
     }, [resortLoading, resort]);
 
 

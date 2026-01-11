@@ -589,7 +589,11 @@ const getStyles = (colors: Theme["colors"]) => {
             borderRadius: 1,
             width: 30
         },
-
+        subtitle: {
+            fontSize: 12,
+            opacity: 0.7,
+            marginTop: 2,
+        },
         smButton: {
             alignSelf: "flex-start",
             backgroundColor: c.background,
@@ -715,7 +719,6 @@ const getStyles = (colors: Theme["colors"]) => {
 
         travelInfoPanel: {
             backgroundColor: c.card,
-            paddingHorizontal: 4,
         },
 
         updated: {fontSize: 12, color: c.muted ?? "#777", marginTop: 8},

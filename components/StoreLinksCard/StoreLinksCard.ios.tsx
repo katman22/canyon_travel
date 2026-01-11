@@ -37,12 +37,10 @@ export default function StoreLinksCard() {
     );
 
     // Primary action: App Store on iOS, website otherwise
-    const primary = useMemo(() => {
-        if (Platform.OS === "ios") {
-            return { label: "Open in App Store", url: IOS_URL };
-        }
-        return { label: "Visit CanyonTraveller.com", url: WEBSITE_URL };
-    }, []);
+    const primary =
+        Platform.OS === "ios"
+            ? { label: "Open in App Store", url: IOS_URL }
+            : { label: "Visit CanyonTraveller.com", url: WEBSITE_URL };
 
     // Secondary action: always safe, always neutral
     const secondary = useMemo(() => {

@@ -1,7 +1,8 @@
 // hooks/useRemoteService.ts
 import {
   AlertEventResponse, TravelTimes, UdotCameraResponse,
-  Resort, Resorts, LocationHourlyForecast, Alerts, Discussion, ParkingResponse, SunriseSunset, SignResponse
+  Resort, Resorts, LocationHourlyForecast, Alerts, Discussion, ParkingResponse, SunriseSunset, SignResponse,
+  DailyForecastResponse
 } from "@/constants/types";
 import { apiAuth } from "@/lib/apiAuth";
 
@@ -55,6 +56,18 @@ export const fetchHourlyWeather = async (
     resort: Resort
 ): Promise<LocationHourlyForecast> => {
   return apiAuth.get("weather/hourly", { lat: resort.latitude, long: resort.longitude, name: resort.resort_name, country_code: "us", _: Date.now() });
+};
+
+export const fetchDailyWeather = async (
+    resort: Resort
+): Promise<DailyForecastResponse> => {
+  return apiAuth.get("weather/forecasts", {
+    lat: resort.latitude,
+    long: resort.longitude,
+    name: resort.resort_name,
+    country_code: "us",
+    _: Date.now(),
+  });
 };
 
 export const fetchCameras = async (

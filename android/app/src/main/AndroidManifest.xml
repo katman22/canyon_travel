@@ -46,7 +46,7 @@
     <receiver android:name=".LargeWidgetProvider" android:exported="true" android:label="Canyon Travel">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.wharepumanawa.canyon_travel.ACTION_REFRESH"/>
+        <action android:name="com.wharepumanawa.canyon_travel.ACTION_REFRESH_DARK"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_traffic_large_info"/>
     </receiver>

@@ -50,8 +50,8 @@ import {
     type HomeResortsResponse,
 } from '@/lib/homeResorts';
 import { effectiveAccess } from '@/lib/access';
-import {Alerts, AlertsEvents, SignResponse, TravelTimes, UdotCamera} from '@/constants/types';
-import SignDisplay from "@/components/SignDisplay";
+import {Alerts, AlertsEvents, TravelTimes, UdotCamera} from '@/constants/types';
+
 
 type Direction = 'to' | 'from';
 

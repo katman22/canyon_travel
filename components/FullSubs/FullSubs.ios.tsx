@@ -4,7 +4,7 @@ import {
     Text
 } from "react-native";
 import {
-    Alerts, type ForecastPeriod,
+    Alerts, DailyForecastPeriod, type ForecastPeriod,
     type SunriseSunset,
 } from "@/constants/types";
 import BannerHeaderAd from "@/components/BannerHeaderAd";
@@ -15,12 +15,15 @@ import FullHourlyForecastStrip from "@/components/FullHourlyForecastStrip";
 import FullForecastSummary from "@/components/FullForecastSummary";
 import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
+import DailyForecastStrip from "@/components/DailyForecastStrip";
 
 type Props = {
+    dailyWeather?: DailyForecastPeriod[]
     resort_name?: string;
     hourlyWeather?: ForecastPeriod[];
     discussionLongData?: string;
     discussionShortData?: string;
+    combinedForecast?: string;
     fetchResortWeather: () => void;
     weatherAlerts: Alerts | null;
     sunTimes: SunriseSunset | null
@@ -33,7 +36,9 @@ export default function FullSubsIos({
                                             weatherAlerts,
                                             discussionShortData,
                                             discussionLongData,
-                                            fetchResortWeather
+                                            fetchResortWeather,
+                                        dailyWeather,
+                                        combinedForecast
                                         }: Props) {
     const {colors} = useTheme();
     const styles = getStyles(colors);
@@ -49,26 +54,34 @@ export default function FullSubsIos({
                 showRefresh={true}
             />
 
-            {discussionLongData && discussionShortData && hourlyWeather && (
+            {hourlyWeather && (
                 <View style={styles.travelInfoPanel} key="weather-panel">
                     <Text style={[styles.panelSubtext, {fontWeight: "bold", marginTop: 15}]}>
                         Alerts:
                     </Text>
                     <FullWeatherAlerts wAlerts={weatherAlerts?.alerts ?? []}/>
 
-                    <CurrentForecastCard period={hourlyWeather[0]} sun={sunTimes}/>
+                    <CurrentForecastCard
+                        period={hourlyWeather[0]}
+                        sun={sunTimes ?? undefined}
+                    />
+
+                    <DailyForecastStrip daily={dailyWeather} />
 
                     <FullHourlyForecastStrip hourly={hourlyWeather}/>
 
-                    <Text style={[styles.panelSubtext, {marginTop: 10, fontWeight: "bold"}]}>
-                        Current Forecast:
-                    </Text>
-                    <FullForecastSummary text={discussionShortData}/>
-
-                    <Text style={[styles.panelSubtext, {marginTop: 10, fontWeight: "bold"}]}>
-                        Extended Forecast:
-                    </Text>
-                    <FullForecastSummary text={discussionLongData}/>
+                    {combinedForecast ? (
+                        <>
+                            <Text style={[styles.panelSubtext, { marginTop: 10, fontWeight: "bold" }]}>
+                                Forecast Discussion:
+                            </Text>
+                            <FullForecastSummary text={combinedForecast} />
+                        </>
+                    ) : (
+                        <Text style={styles.infoText}>
+                            Forecast discussion temporarily unavailable.
+                        </Text>
+                    )}
 
                     <Text style={styles.footerText}>
                         Updated: {new Date().toLocaleString(undefined, {

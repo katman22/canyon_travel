@@ -76,6 +76,19 @@ export default function FullHourlyForecastStrip({ hourly }: Props) {
         });
     }, [hourly]);
 
+    if (!hours || hours.length === 0) {
+        return (
+            <View style={{ marginTop: 6, marginBottom: 15 }}>
+                <Text style={[styles.panelSubtext, { fontWeight: "bold" }]}>
+                    Hourly Forecast
+                </Text>
+                <Text style={styles.infoText}>
+                    Hourly forecast temporarily unavailable.
+                </Text>
+            </View>
+        );
+    }
+
 
     // Double-tap + modal state
     const lastTapRef = useRef<number>(0);
@@ -84,7 +97,7 @@ export default function FullHourlyForecastStrip({ hourly }: Props) {
 
     const handleTilePress = (period: ForecastPeriod) => {
         const now = Date.now();
-        if (now - lastTapRef.current < 300) {
+        if (now - lastTapRef.current < 300 && period) {
             setSelected(period);
             setShowModal(true);
         }
@@ -107,7 +120,9 @@ export default function FullHourlyForecastStrip({ hourly }: Props) {
 
     return (
         <View style={{ marginTop: 6, marginBottom: 15}}>
-            <Text style={[styles.panelSubtext, { fontWeight: "bold" }]}>Hourly Forecast (100 hours) :</Text>
+            <Text style={[styles.panelSubtext, { fontWeight: "bold" }]}>
+                Hourly Forecast
+            </Text>
             <FlatList
                 data={data}
                 keyExtractor={(row) => row.key}
@@ -173,6 +188,9 @@ export default function FullHourlyForecastStrip({ hourly }: Props) {
                                     source={{ uri: hour.icon }}
                                     style={{ width: 40, height: 40, marginVertical: 6 }}
                                     resizeMode="contain"
+                                    onError={() => {
+                                        // swallow icon failures silently
+                                    }}
                                 />
                             ) : (
                                 <View style={{ width: 40, height: 40, marginVertical: 6 }} />
@@ -208,7 +226,7 @@ export default function FullHourlyForecastStrip({ hourly }: Props) {
 
             {/* Details Modal on double-tap */}
             <Modal
-                visible={showModal}
+                visible={showModal && !!selected}
                 animationType="slide"
                 transparent
                 onRequestClose={() => setShowModal(false)}

@@ -80,6 +80,7 @@ export async function bootstrapAuth() {
   // --- 5) Now log into RevenueCat using the authoritative server identity
   try {
     const rcResult = await Purchases.logIn(String(publicId));
+    await Purchases.getCustomerInfo();
     console.log("🟢 RC login result:", rcResult);
     console.log("🟢 RC new app user id:", await Purchases.getAppUserID());
 

@@ -71,7 +71,7 @@ export default function LocationsScreen() {
             if (locked) {
                 goSubscribe();
             } else {
-                handleResortSelection(item).then();
+                handleResortSelection(item);
             }
         };
 
