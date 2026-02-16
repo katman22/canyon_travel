@@ -1,6 +1,6 @@
 import "react-native-reanimated";
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import {View, ImageBackground, StyleSheet, StatusBar} from "react-native";
+import {View, ImageBackground, StyleSheet, StatusBar, TouchableOpacity} from "react-native";
 import {SafeAreaView, useSafeAreaInsets} from "react-native-safe-area-context";
 import {useTheme} from "@react-navigation/native";
 import {router} from "expo-router";
@@ -29,7 +29,7 @@ import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import FullSubs from "@/components/FullSubs";
 // @ts-ignore
 import PreviewSubs from "@/components/PreviewSubs";
-import {Platform} from "react-native";
+import {Platform, Text} from "react-native";
 import TopPillBackground from "@/components/TopPillbackground";
 
 export default function WeatherScreen() {
@@ -50,6 +50,7 @@ export default function WeatherScreen() {
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
     const [homes, setHomes] = useState<HomeResortsResponse | undefined>(undefined);
     const goSubscribe = () => router.replace("/tabs/rc_subscriptions");
+    const hasRadarAccess = tier === "pro" || tier === "premium";
     const combinedForecast =
         (discussionShortData ?? "") +
         (discussionLongData ?? "");
@@ -154,6 +155,7 @@ export default function WeatherScreen() {
             sunTimes={sunTimes}
             hourlyWeather={hourlyWeather?.periods}
             dailyWeather={dailyWeather}
+            hasRadarAccess={hasRadarAccess}
         />
     );
 
@@ -169,8 +171,6 @@ export default function WeatherScreen() {
     );
 
 
-    // If ANDROID → use Android-friendly view
-    if (Platform.OS === "android") {
         return (
             <SafeAreaView
                 style={{flex: 1, backgroundColor: "#e6f3f8"}}
@@ -181,43 +181,4 @@ export default function WeatherScreen() {
                 {fullAccess && weatherAccess ? fullForSubs : previewForNonSubs}
             </SafeAreaView>
         );
-    }
-
-// Otherwise → iOS view
-    return (
-        <SafeAreaView style={{flex: 1, backgroundColor: '#e6f3f8'}}>
-            <ImageBackground
-                source={require("@/assets/canyon_travellers_v6.png")}
-                style={StyleSheet.absoluteFillObject}
-                resizeMode="cover"
-                imageStyle={{opacity: .75}}
-            />
-
-            <FloatingSettingsButton/>
-
-            <View style={{flex: 1}}>
-                <BottomSheet
-                    ref={sheetRef}
-                    index={1}
-                    snapPoints={snapPoints}
-                    topInset={topInset}
-                    enablePanDownToClose={false}
-                    handleIndicatorStyle={{backgroundColor: colors.border || "#cfd8dc"}}
-                    backgroundStyle={{backgroundColor: "#8ec88e"}}
-                >
-                    <BottomSheetScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{
-                            flexGrow: 1,
-                            paddingBottom: 40,
-                            backgroundColor: "#fff",
-                        }}
-                    >
-                        {fullAccess && weatherAccess ? fullForSubs : previewForNonSubs}
-                    </BottomSheetScrollView>
-                </BottomSheet>
-
-            </View>
-        </SafeAreaView>
-    );
 }

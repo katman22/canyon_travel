@@ -1,7 +1,7 @@
 import React from "react";
 import {
     View,
-    Text
+    Text, TouchableOpacity
 } from "react-native";
 import {
     Alerts, DailyForecastPeriod, DailyForecastResponse, type ForecastPeriod,
@@ -17,6 +17,7 @@ import {ScrollView} from "react-native-gesture-handler";
 import {useTheme} from "@react-navigation/native";
 import getStyles from "@/assets/styles/styles";
 import DailyForecastStrip from "@/components/DailyForecastStrip";
+import {router} from "expo-router";
 
 type Props = {
     resort_name?: string;
@@ -28,6 +29,7 @@ type Props = {
     combinedForecast?: string;
     sunTimes: SunriseSunset | null
     dailyWeather?: DailyForecastPeriod[]
+    hasRadarAccess: boolean
 };
 
 export default function FullSubsAndroid({
@@ -35,11 +37,10 @@ export default function FullSubsAndroid({
                                             sunTimes,
                                             hourlyWeather,
                                             weatherAlerts,
-                                            discussionShortData,
-                                            discussionLongData,
                                             fetchResortWeather,
                                             dailyWeather,
-                                            combinedForecast
+                                            combinedForecast,
+                                            hasRadarAccess
                                         }: Props) {
     const {colors} = useTheme();
     const styles = getStyles(colors);
@@ -63,6 +64,38 @@ export default function FullSubsAndroid({
             />
             {hourlyWeather && (
                 <View style={styles.travelInfoPanel} key="weather-panel">
+
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (hasRadarAccess) {
+                                router.push("/tabs/radar");
+                            } else {
+                                router.push("/tabs/rc_subscriptions");
+                            }
+                        }}
+                        activeOpacity={hasRadarAccess ? 0.85 : 0.9}
+                        style={{
+                            marginHorizontal: 16,
+                            marginTop: 12,
+                            marginBottom: 8,
+                            paddingVertical: 12,
+                            borderRadius: 10,
+                            backgroundColor: hasRadarAccess ? "#1e88e5" : "#b0bec5",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: "#fff",
+                                fontSize: 16,
+                                fontWeight: "600",
+                            }}
+                        >
+                            {hasRadarAccess ? "🛰 View Live Radar" : "🔒 Upgrade to Pro for Radar"}
+                        </Text>
+                    </TouchableOpacity>
+
                     <Text style={[styles.panelSubtext, { fontWeight: "bold", marginTop: 15 }]}>
                         Alerts:
                     </Text>
