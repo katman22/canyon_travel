@@ -10,7 +10,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import {useSubscription} from "@/context/SubscriptionContext";
 import HomeResortSelector from "@/components/HomeResortSelector";
 import SubscriptionStatusCard from "@/components/SubscriptionStatusCard";
@@ -64,13 +64,13 @@ export default function Settings() {
                         showsVerticalScrollIndicator={false}
                         style={{backgroundColor: "#fff"}}
                     >
-                        <BannerHeaderAd style={{marginBottom: 20}} ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+                        <BannerHeaderAdIos style={{marginBottom: 20}} ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
                         <StoreLinksCard />
                         <SubscriptionStatusCard />
                         <HomeResortSelector />
                         <SubscriptionLegalFooter />
                         <IdLoader />
-                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
+                        <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/9698910518"}/>
                     </BottomSheetScrollView>
                 </BottomSheet>
             </View>

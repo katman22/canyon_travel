@@ -1,11 +1,19 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
 
-// @ts-ignore
-export default function UpdateRequiredScreen({ payload }) {
+type UpdateRequiredPayload = {
+    url?: string;
+    message?: string;
+};
+
+type Props = {
+    payload?: UpdateRequiredPayload;
+};
+
+export default function UpdateRequiredScreen({ payload }: Props) {
     const storeUrl =
         payload?.url ||
-        "https://play.google.com/store/apps/details?id=com.wharepumanawa.canyon_travel";
+        "https://apps.apple.com/app/id6752226942";
 
     return (
         <View style={styles.container}>

@@ -1,14 +1,12 @@
 // lib/bootstrapAuth.ts
 import * as SecureStore from "expo-secure-store";
-import { NativeModules, Platform } from "react-native";
+import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import * as Application from "expo-application";
 import { apiAuth } from "@/lib/apiAuth";
 import { setPrefsUser } from "@/lib/userPrefs";
 import { configureRevenueCat } from "@/lib/revenueCatSetup";
 import {saveAuthForIOS} from "@/native/WidgetUpdater.ios";
-import {saveAuthForWidgetAndroid} from "@/native/WidgetUpdater";
-const { WidgetUpdater } = NativeModules;
 const KEY_UID = "ct_user_id";
 const KEY_JWT = "ct_jwt";
 
@@ -64,17 +62,6 @@ export async function bootstrapAuth() {
       console.warn("Failed to save auth for widget:", e);
     }
   }
-
-  // inside bootstrapAuth(), after storing JWT:
-  if (Platform.OS === "android") {
-    try {
-      console.log("Saving keys", publicId, jwt)
-      await saveAuthForWidgetAndroid(publicId, jwt);
-    } catch (e) {
-      console.warn("Android widget auth save failed:", e);
-    }
-  }
-
   apiAuth.setToken(jwt);
 
   // --- 5) Now log into RevenueCat using the authoritative server identity

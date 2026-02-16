@@ -39,10 +39,7 @@ type SubscriptionState = {
 
 const SubscriptionContext = createContext<SubscriptionState | undefined>(undefined);
 
-const RC_API_KEY = Platform.select({
-    ios: "appl_CGSkKUbeKLufJXnmTNildaLBClw",
-    android: "goog_hDsZkRPwzRmXonNUoMkoWJHXUzd",
-})!;
+const RC_API_KEY = "appl_CGSkKUbeKLufJXnmTNildaLBClw";
 
 // ---------------- HELPER FUNCTIONS -----------------
 

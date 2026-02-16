@@ -14,7 +14,7 @@ import {useTheme} from '@react-navigation/native';
 import type {ComponentType, ReactElement, ReactNode} from 'react';
 import {useSelectedResort} from '@/context/ResortContext';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 
 export type BottomSheetListHandle = {
     expand: () => void;
@@ -142,7 +142,7 @@ function InnerBottomSheetList<T>(
 
     const ListHeader = (
         <>
-            <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+            <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
             {composedHeader}
         </>
     );
@@ -151,7 +151,7 @@ function InnerBottomSheetList<T>(
         <View
             onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
         >
-            <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
+            <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/9698910518"}/>
         </View>
     );
 

@@ -6,7 +6,7 @@ export default {
         name: "Canyon Traveller",
         slug: 'canyon_travel',
         scheme: 'canyontravel',
-        version: "3",
+        version: "4",
         orientation: 'default',
         icon: './assets/canyon_travellers_v4.png',
         userInterfaceStyle: 'light',
@@ -30,6 +30,7 @@ export default {
                 googleMapsApiKey: "AIzaSyBifu6VZKsaLr03cGLKt6sfsQEHpPnU_nU"
             },
             infoPlist: {
+                MAPTILER_API_KEY: "TNGEDOjQUEGo58SROGRm",
                 NSLocationWhenInUseUsageDescription: "Canyon Traveler uses your location to show local weather, canyon traffic times, and resort travel data.",
                 NSAppTransportSecurity: {
                     NSAllowsArbitraryLoads: true,

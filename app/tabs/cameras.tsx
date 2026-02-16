@@ -19,7 +19,7 @@ import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
 import Header from "@/components/Header";
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import {useSubscription} from "@/context/SubscriptionContext";
 import {router} from "expo-router";
 import FloatingSettingsButton from "@/components/FloatingSettingsButton";
@@ -143,7 +143,7 @@ export default function Cameras() {
                         showsVerticalScrollIndicator={false}
                         style={{backgroundColor: "#fff"}}
                     >
-                        <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+                        <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
 
                         <Header
                             message={"Cameras:"}
@@ -166,7 +166,7 @@ export default function Cameras() {
                             onUnlock={getSubs}
                         />
 
-                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
+                        <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/9698910518"}/>
                     </BottomSheetScrollView>
                 </BottomSheet>
             </View>

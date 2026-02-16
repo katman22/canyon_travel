@@ -6,7 +6,7 @@ import {
 import {
     Alerts, type ForecastPeriod
 } from "@/constants/types";
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import Header from "@/components/Header";
 import {ScrollView} from "react-native-gesture-handler";
 import {useTheme} from "@react-navigation/native";
@@ -39,7 +39,7 @@ export default function PreviewSubsIos({
             showsVerticalScrollIndicator={false}
             style={{marginTop: 10}}
         >
-            <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+            <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
             <Header
                 message="Weather:"
                 onRefresh={fetchResortWeather}
@@ -66,7 +66,7 @@ export default function PreviewSubsIos({
                 })}
                 </Text>
             </View>
-            <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+            <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
         </ScrollView>
     );
 }

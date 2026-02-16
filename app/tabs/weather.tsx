@@ -1,6 +1,6 @@
 import "react-native-reanimated";
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import {View, ImageBackground, StyleSheet, StatusBar} from "react-native";
+import {View, ImageBackground, StyleSheet, StatusBar, TouchableOpacity, Text} from "react-native";
 import {SafeAreaView, useSafeAreaInsets} from "react-native-safe-area-context";
 import {useTheme} from "@react-navigation/native";
 import {router} from "expo-router";
@@ -29,8 +29,8 @@ import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import FullSubs from "@/components/FullSubs";
 // @ts-ignore
 import PreviewSubs from "@/components/PreviewSubs";
-import {Platform} from "react-native";
-import TopPillBackground from "@/components/TopPillbackground";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {runOnJS} from "react-native-reanimated";
 
 export default function WeatherScreen() {
     const [loading, setLoading] = useState(false);
@@ -50,10 +50,11 @@ export default function WeatherScreen() {
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
     const [homes, setHomes] = useState<HomeResortsResponse | undefined>(undefined);
     const goSubscribe = () => router.replace("/tabs/rc_subscriptions");
+    const hasRadarAccess = tier === "pro" || tier === "premium";
     const combinedForecast =
         (discussionShortData ?? "") +
         (discussionLongData ?? "");
-
+    const [mapIsInteracting, setMapIsInteracting] = useState(false);
     const withTimeout = <T,>(promise: Promise<T>, ms = 12000): Promise<T> =>
         Promise.race([
             promise,
@@ -61,6 +62,18 @@ export default function WeatherScreen() {
                 setTimeout(() => reject(new Error("timeout")), ms)
             ),
         ]);
+    // Maptiler needs
+    const nativeMapGesture = useMemo(
+        () =>
+            Gesture.Native()
+                .onBegin(() => {
+                    runOnJS(setMapIsInteracting)(true);
+                })
+                .onFinalize(() => {
+                    runOnJS(setMapIsInteracting)(false);
+                }),
+        []
+    );
 
     const fetchResortWeather = async () => {
         if (!resort) return;
@@ -168,22 +181,6 @@ export default function WeatherScreen() {
         />
     );
 
-
-    // If ANDROID → use Android-friendly view
-    if (Platform.OS === "android") {
-        return (
-            <SafeAreaView
-                style={{flex: 1, backgroundColor: "#e6f3f8"}}
-                edges={["top", "left", "right"]}
-            >
-                <TopPillBackground color="#71C476" height={12} radius={14}/>
-                <FloatingSettingsButton/>
-                {fullAccess && weatherAccess ? fullForSubs : previewForNonSubs}
-            </SafeAreaView>
-        );
-    }
-
-// Otherwise → iOS view
     return (
         <SafeAreaView style={{flex: 1, backgroundColor: '#e6f3f8'}}>
             <ImageBackground
@@ -196,12 +193,17 @@ export default function WeatherScreen() {
             <FloatingSettingsButton/>
 
             <View style={{flex: 1}}>
+
                 <BottomSheet
                     ref={sheetRef}
                     index={1}
                     snapPoints={snapPoints}
                     topInset={topInset}
                     enablePanDownToClose={false}
+
+                    enableHandlePanningGesture={!mapIsInteracting}
+                    enableContentPanningGesture={true}
+
                     handleIndicatorStyle={{backgroundColor: colors.border || "#cfd8dc"}}
                     backgroundStyle={{backgroundColor: "#8ec88e"}}
                 >
@@ -213,6 +215,37 @@ export default function WeatherScreen() {
                             backgroundColor: "#fff",
                         }}
                     >
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (hasRadarAccess) {
+                                    router.push("/tabs/radar");
+                                } else {
+                                    router.push("/tabs/rc_subscriptions");
+                                }
+                            }}
+                            activeOpacity={hasRadarAccess ? 0.85 : 0.9}
+                            style={{
+                                marginHorizontal: 16,
+                                marginTop: 12,
+                                marginBottom: 8,
+                                paddingVertical: 12,
+                                borderRadius: 10,
+                                backgroundColor: hasRadarAccess ? "#1e88e5" : "#b0bec5",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    color: "#fff",
+                                    fontSize: 16,
+                                    fontWeight: "600",
+                                }}
+                            >
+                                {hasRadarAccess ? "🛰 View Live Radar" : "🔒 Upgrade to Pro for Radar"}
+                            </Text>
+                        </TouchableOpacity>
+
                         {fullAccess && weatherAccess ? fullForSubs : previewForNonSubs}
                     </BottomSheetScrollView>
                 </BottomSheet>

@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import {
-    Platform,
-    BackHandler,
     ImageBackground,
     StyleSheet,
     SafeAreaView
@@ -20,9 +18,6 @@ import {
     reloadWidgetsIOS,
     getInstalledCountIOS,
 } from "@/native/WidgetUpdater.ios";
-
-import { saveWidgetResortForId } from "@/native/WidgetUpdater";
-
 import type { Resort } from "@/constants/types";
 import WidgetResortBottomSheet from "@/components/WidgetResortBottomSheet";
 import { ResortProvider } from "@/context/ResortContext";
@@ -79,12 +74,8 @@ function WidgetSetupScreen() {
             let cancelled = false;
 
             (async () => {
-                if (Platform.OS === "ios") {
                     const n = await getInstalledCountIOS();
                     if (!cancelled) setInstalledCount(n);
-                } else {
-                    setInstalledCount(0);
-                }
             })();
 
             return () => {
@@ -110,13 +101,8 @@ function WidgetSetupScreen() {
             (async () => {
                 if (!isWidgetConfig) return;
                 if (!resort) return;
-
-                if (Platform.OS === "ios") {
-                    saveWidgetResortForIOS(String(resort.resort_id));
-                    reloadWidgetsIOS();
-                } else if (Number.isFinite(widgetId)) {
-                    await saveWidgetResortForId(widgetId, String(resort.resort_id));
-                }
+                saveWidgetResortForIOS(String(resort.resort_id));
+                reloadWidgetsIOS();
             })();
 
             return () => {
@@ -127,19 +113,13 @@ function WidgetSetupScreen() {
 
     const finalizeAndExit = () => {
         if (router.canGoBack()) return router.back();
-        if (Platform.OS === "android") return BackHandler.exitApp();
     };
 
     const onSelectForWidget = async (r: Resort) => {
         console.log("We made it here");
         // Apply to widget
-        if (Platform.OS === "ios") {
-            saveWidgetResortForIOS(String(r.slug));
-            reloadWidgetsIOS();
-        } else if (Number.isFinite(widgetId)) {
-            console.log("2nd We made it here");
-            await saveWidgetResortForId(widgetId, String(r.slug));
-        }
+        saveWidgetResortForIOS(String(r.slug));
+        reloadWidgetsIOS();
 
         await selectResort(r);
         finalizeAndExit();

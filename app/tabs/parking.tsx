@@ -22,7 +22,7 @@ import ParkingFaqs from "@/components/ParkingFaqs";
 import BrandedLoader from '@/components/BrandedLoader';
 import {useStepProgress} from '@/utils/useStepProgress';
 import Header from "@/components/Header";
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import YouTubeTileBlockedPlayer from "@/components/YouTubeTileBlockedPlayer";
 import {router} from "expo-router";
 import {useSubscription} from "@/context/SubscriptionContext";
@@ -144,7 +144,7 @@ export default function Parking() {
                 <BottomSheetScrollView contentContainerStyle={styles.cameraContainer}
                                        showsVerticalScrollIndicator={false}
                                        style={{backgroundColor: "#fff"}}>
-                    <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
+                    <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/9698910518"}/>
                     <Header message={"Activities:"} onRefresh={fetchResortDirections} colors={colors}
                             resort={resort?.resort_name} showRefresh={true}/>
                     <ScrollView contentContainerStyle={styles.cameraContainer}>
@@ -188,7 +188,7 @@ export default function Parking() {
                                 </Text>
                             </View>
                     </ScrollView>
-                    <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+                    <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
                 </BottomSheetScrollView>
             </BottomSheet>
         </SafeAreaView>

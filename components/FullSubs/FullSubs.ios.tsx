@@ -7,7 +7,7 @@ import {
     Alerts, DailyForecastPeriod, type ForecastPeriod,
     type SunriseSunset,
 } from "@/constants/types";
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import Header from "@/components/Header";
 import FullWeatherAlerts from "@/components/FullWeatherAlerts";
 import CurrentForecastCard from "@/components/CurrentForecastCard";
@@ -45,7 +45,7 @@ export default function FullSubsIos({
 
     return (
         <View>
-            <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+            <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
             <Header
                 message="Weather:"
                 onRefresh={fetchResortWeather}
@@ -94,7 +94,7 @@ export default function FullSubsIos({
                 </View>
             )}
 
-            <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+            <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
         </View>
     );
 }

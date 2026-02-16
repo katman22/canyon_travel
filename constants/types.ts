@@ -37,10 +37,6 @@ export type WeatherData = {
   hourly: ForecastPeriod[];            // was LocationHourlyForecast
 };
 
-export interface GoogleDirectionsResponse {
-  routes: Route[];
-}
-
 export interface ParkingData {
   operations: OperatingHours;
 }

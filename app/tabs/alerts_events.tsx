@@ -18,7 +18,7 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import BrandedLoader from "@/components/BrandedLoader";
 import { useStepProgress } from "@/utils/useStepProgress";
 import Header from "@/components/Header";
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import ConditionsEventsBlock from "@/components/ConditionsEventsBlock";
 import { router } from "expo-router";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -148,9 +148,8 @@ export default function Alerts_events() {
                     showsVerticalScrollIndicator={false}
                     style={{ backgroundColor: "#fff" }}
                 >
-                    <BannerHeaderAd
+                    <BannerHeaderAdIos
                         ios_id={"ca-app-pub-6336863096491370/3525040945"}
-                        android_id={"ca-app-pub-6336863096491370/7271412245"}
                     />
 
                     <Header
@@ -228,7 +227,7 @@ export default function Alerts_events() {
                             </View>
 
                         </View>
-                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+                        <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
                     </BottomSheetScrollView>
                 </BottomSheet>
         </SafeAreaView>

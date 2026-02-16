@@ -1,4 +1,4 @@
-// components/BannerHeaderAd.tsx
+// components/BannerHeaderAd.ios.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     View,
@@ -13,7 +13,6 @@ import {
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 
 type Props = {
-    android_id?: string | null;
     ios_id?: string | null;
     campaigns?: HouseCampaign[];
     style?: ViewStyle;
@@ -85,18 +84,16 @@ function HouseBanner({
     );
 }
 
-export default function BannerHeaderAd({ android_id, ios_id, campaigns, style }: Props) {
+export default function BannerHeaderAdIos({ ios_id, campaigns, style }: Props) {
     const { width } = useWindowDimensions();
 
-    const REAL_UNIT = (android_id || ios_id)
+    const REAL_UNIT = ios_id
         ? {
-            android: android_id ?? undefined,
             ios: ios_id ?? undefined,
         }
         : undefined;
 
-    const adUnitId =
-        REAL_UNIT?.android || REAL_UNIT?.ios || TestIds.BANNER;
+    const adUnitId = REAL_UNIT?.ios || TestIds.BANNER;
     const unitId = __DEV__ ? TestIds.BANNER : adUnitId;
 
     const [status, setStatus] = useState<"loading" | "loaded" | "failed">("loading");

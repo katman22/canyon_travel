@@ -1,6 +1,7 @@
 import Expo
 import React
 import ReactAppDependencyProvider
+import MapTilerSDK
 
 // @generated begin react-native-maps-import - expo prebuild (DO NOT MODIFY) sync-bee50fec513f89284e0fa3f5d935afdde33af98f
 #if canImport(GoogleMaps)
@@ -21,10 +22,17 @@ public class AppDelegate: ExpoAppDelegate {
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
-
     reactNativeDelegate = delegate
     reactNativeFactory = factory
     bindReactNativeFactory(factory)
+    
+    
+    
+    Task { @MainActor in
+      do {
+        await MTConfig.shared.setAPIKey("TNGEDOjQUEGo58SROGRm")
+      } 
+    }
 
 #if os(iOS) || os(tvOS)
     window = UIWindow(frame: UIScreen.main.bounds)

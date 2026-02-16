@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import {useRevenueCat} from "@/hooks/useRevenueCat";
 import {SubscriptionPlanCard} from "@/components/SubscriptionPlanCard";
+import {PurchaseSuccessScreen} from "@/components/PurchaseSuccessScreen";
 import {getPriceString, getUnit, getYearlySavingsPct} from "@/utils/pricing";
 import BrandedLoader from "@/components/BrandedLoader";
 import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
@@ -25,10 +26,7 @@ import Purchases from "react-native-purchases";
 import {SubscriptionLegalFooter} from "@/components/SubscriptionLegalFooter";
 
 // --------- CONFIG ----------
-const RC_API_KEY = Platform.select({
-    ios: "appl_CGSkKUbeKLufJXnmTNildaLBClw",
-    android: "goog_hDsZkRPwzRmXonNUoMkoWJHXUzd",
-})!;
+const RC_API_KEY = "appl_CGSkKUbeKLufJXnmTNildaLBClw";
 
 // Your explicit SKU map (keeps logic simple for toggling)
 const SKUS = {
@@ -49,6 +47,9 @@ export default function RCSubscriptionsScreen() {
     const insets = useSafeAreaInsets();
     const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
     const {refresh: refreshSubContext} = useSubscription();
+    const [purchaseSuccessTier, setPurchaseSuccessTier] =
+        useState<"Standard" | "Pro" | "Premium" | null>(null);
+    const [isPurchasing, setIsPurchasing] = useState(false);
 
     const getBySku = (sku: string) => {
         const direct =
@@ -113,7 +114,7 @@ export default function RCSubscriptionsScreen() {
             summary: "Step up to real-time precision. ",
             monthlySku: SKUS.standard.monthly,
             yearlySku: SKUS.standard.yearly,
-            features: ["2 home resorts + 2 additional resorts ", "1 home resort change per week ", "2-minute traffic updates"],
+            features: ["2 home resorts + 2 additional free resorts ", "2-minute traffic updates"],
             popular: false,
             tagLine: "💡Know the best canyon before you leave your driveway. "
         },
@@ -123,7 +124,7 @@ export default function RCSubscriptionsScreen() {
             summary: "Plan like a local — power tools for frequent riders. ",
             monthlySku: SKUS.pro.monthly,
             yearlySku: SKUS.pro.yearly,
-            features: ["4 home resorts + 2 additional resorts", "2 home resort changes per week", "Real-time updates ", "1 Widget – To/From times + quick resort access"],
+            features: ["4 home resorts + 2 additional free resorts", "Real-time updates ", "1 Widget – To/From times + quick resort access"],
             popular: false,
             tagLine: "🔥Your mountain plan - skip guesswork, save time. "
         },
@@ -187,9 +188,9 @@ export default function RCSubscriptionsScreen() {
             }
         }
         try {
+            setIsPurchasing(true);
             // 1) Make the purchase
             await purchaseBySku(sku);
-
             // 2) Wait for RC to reflect the new active entitlement(s)
             //    If you know your entitlement ids, include them for faster/stricter matching:
             //    includeOneOf: ["premium","pro","standard"]
@@ -205,19 +206,21 @@ export default function RCSubscriptionsScreen() {
             } catch (err) {
                 console.log("Failed to refresh global subscription context after purchase:", err);
             }
-
             await afterPurchaseOrRestore();
-            // 5) Send them straight to Settings to pick home resorts
-            router.replace("/tabs/settings");
 
-            Alert.alert(
-                "Purchase completed. Please pick home resorts",
-                `Current Subscription: ${got.join(", ") || "none"}`
-            );
+            // Map entitlement → display label
+            const label =
+                got.includes("premium") ? "Premium" :
+                    got.includes("pro") ? "Pro" :
+                        "Standard";
+
+            setPurchaseSuccessTier(label);
         } catch (e: any) {
             if (!e?.userCancelled) {
                 Alert.alert("Purchase failed", e?.message ?? String(e));
             }
+        } finally {
+            setIsPurchasing(false);
         }
     };
 
@@ -312,8 +315,8 @@ export default function RCSubscriptionsScreen() {
                                     yearlySavingsText={savingsText(p.monthlySku, p.yearlySku)}
                                     onPressMonthly={onPressMonthly}
                                     onPressYearly={onPressYearly}
-                                    monthlyDisabled={loading || (!isUpgrade && !isCurrent)} // disabled if not relevant
-                                    yearlyDisabled={loading || (!isUpgrade && !isCurrent)}
+                                    monthlyDisabled={loading || isPurchasing || !onPressMonthly}
+                                    yearlyDisabled={loading || isPurchasing || !onPressYearly}
                                     statusLabel={statusLabel}
                                     monthlyCtaLabel={monthlyCtaLabel}
                                     yearlyCtaLabel={yearlyCtaLabel}
@@ -329,6 +332,17 @@ export default function RCSubscriptionsScreen() {
                         <SubscriptionLegalFooter />
                     </BottomSheetScrollView>
                 </BottomSheet>
+
+                {purchaseSuccessTier && (
+                    <PurchaseSuccessScreen
+                        tierLabel={purchaseSuccessTier}
+                        onContinue={() => {
+                            setPurchaseSuccessTier(null);
+                            router.replace("/tabs/settings");
+                        }}
+                    />
+                )}
+
             </View>
         </SafeAreaView>
     );

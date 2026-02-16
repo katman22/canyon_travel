@@ -155,6 +155,11 @@ export default function TabLayout() {
                     options={{href: null, headerShown: false}}
                 />
 
+                <Tabs.Screen
+                    name="radar"
+                    options={{href: null, headerShown: false}}
+                />
+
             </Tabs>
         </ResortProvider>
     );

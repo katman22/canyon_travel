@@ -1,12 +1,6 @@
 // lib/revenueCatSetup.ts
 import Purchases, { LOG_LEVEL }  from "react-native-purchases";
-import { Platform } from "react-native";
-
-const RC_API_KEY = Platform.select({
-    ios: "appl_CGSkKUbeKLufJXnmTNildaLBClw",
-    android: "goog_hDsZkRPwzRmXonNUoMkoWJHXUzd",
-})!;
-
+const RC_API_KEY = "appl_CGSkKUbeKLufJXnmTNildaLBClw";
 let configured = false;
 
 /**

@@ -14,7 +14,7 @@ import DoubleTap from "@/components/DoubleTap";
 import type { UdotCamera } from "@/constants/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 
 type Props = {
     cameras: UdotCamera[];
@@ -165,7 +165,7 @@ export default function CameraList({
                         <React.Fragment key={`camwrap-${cam.Id ?? idx}`}>
                             {card}
                             <View style={{ marginBottom: 15 }}>
-                                <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+                                <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
                             </View>
                         </React.Fragment>
                     );

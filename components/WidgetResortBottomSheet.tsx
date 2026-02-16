@@ -13,7 +13,7 @@ import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { useTheme } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import BannerHeaderAd from "@/components/BannerHeaderAd";
+import BannerHeaderAdIos from "@/components/BannerHeaderAd.ios";
 import ResortTile from "@/components/ResortTile";
 import type { Resort } from "@/constants/types";
 
@@ -75,7 +75,7 @@ export default function WidgetResortBottomSheet({
                 ]}
                 ListHeaderComponent={
                     <>
-                        <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+                        <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
 
                         {selectedResort && (
                             <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
@@ -125,7 +125,7 @@ export default function WidgetResortBottomSheet({
                     <View
                         onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
                     >
-                        <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+                        <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
                     </View>
                 }
             />

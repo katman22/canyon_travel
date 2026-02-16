@@ -7,16 +7,15 @@ import {
     StyleSheet,
     SafeAreaView,
     Button,
-    Platform,
     TouchableOpacity,
     StatusBar,
 } from 'react-native';
-import MapView, { Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+
+import MapView, { Polyline } from 'react-native-maps';
 import { LatLng } from 'react-native-maps';
 import polyline from '@mapbox/polyline';
 import { router } from 'expo-router';
 import { useTheme } from '@react-navigation/native';
-
 import getStyles from '@/assets/styles/styles';
 import CameraList from '@/components/CameraList';
 import YouTubeTile from '@/components/YouTubeTiles';
@@ -25,7 +24,7 @@ import ParkingHours from '@/components/ParkingHours';
 import BrandedLoader from '@/components/BrandedLoader';
 import Header from '@/components/Header';
 import { useStepProgress } from '@/utils/useStepProgress';
-import BannerHeaderAd from '@/components/BannerHeaderAd';
+import BannerHeaderAdIos from '@/components/BannerHeaderAd.ios';
 import ConditionsEventsBlock from '@/components/ConditionsEventsBlock';
 import WeatherSection from '@/components/WeatherSection';
 import FloatingSettingsButton from '@/components/FloatingSettingsButton';
@@ -288,14 +287,13 @@ export default function ToResortMap() {
             <View style={[styles.map_view, { flex: 1 }]}>
                 <MapView
                     ref={mapRef}
-                    provider={Platform.OS === 'ios' ? undefined : PROVIDER_GOOGLE}
                     style={StyleSheet.absoluteFillObject}
                     showsTraffic
                     initialRegion={{
-                        latitude: coords[0]?.latitude ?? 40.577,
-                        longitude: coords[0]?.longitude ?? -111.655,
-                        latitudeDelta: 0.15,
-                        longitudeDelta: 0.15,
+                        latitude: coords[0]?.latitude ?? FALLBACK_REGION.latitude,
+                        longitude: coords[0]?.longitude ?? FALLBACK_REGION.longitude,
+                        latitudeDelta: FALLBACK_REGION.latitudeDelta,
+                        longitudeDelta: FALLBACK_REGION.longitudeDelta,
                     }}
                     onMapLoaded={() => {
                         setMapReady(true);
@@ -331,7 +329,7 @@ export default function ToResortMap() {
                     scrollEnabled={sheetScrollEnabled}
                     style={{ backgroundColor: '#fff' }}
                 >
-                    <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/9698910518"} android_id={"ca-app-pub-6336863096491370/9023477617"}/>
+                    <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/9698910518"}/>
                     <Header
                         message={'Travel Times:'}
                         onRefresh={fetchResortDirections}
@@ -452,7 +450,7 @@ export default function ToResortMap() {
                                         />
                                     </View>
 
-                                    <BannerHeaderAd ios_id={"ca-app-pub-6336863096491370/4750492703"} android_id={"ca-app-pub-6336863096491370/1652254050"}/>
+                                    <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/4750492703"}/>
 
                                     <ConditionsEventsBlock
                                         data={alertsEvents}
@@ -489,7 +487,7 @@ export default function ToResortMap() {
 
                             <ParkingHours parking={travelData?.parking} />
 
-                            <BannerHeaderAd style={{ marginTop: 10, marginBottom: 10 }} ios_id={"ca-app-pub-6336863096491370/5184950439"} android_id={"ca-app-pub-6336863096491370/8584493915"} />
+                            <BannerHeaderAdIos style={{ marginTop: 10, marginBottom: 10 }} ios_id={"ca-app-pub-6336863096491370/5184950439"}/>
 
                             <WeatherSection
                                 alerts={weatherAlerts?.alerts ?? []}
@@ -511,7 +509,7 @@ export default function ToResortMap() {
                     <View style={[styles.buttonRowBottom, { marginBottom: 50, marginLeft: 10 }]}>
                         <Button title="Collapse" onPress={handleCollapse} />
                     </View>
-                    <BannerHeaderAd  ios_id={"ca-app-pub-6336863096491370/3525040945"} android_id={"ca-app-pub-6336863096491370/7271412245"}/>
+                    <BannerHeaderAdIos ios_id={"ca-app-pub-6336863096491370/3525040945"}/>
                 </BottomSheetScrollView>
             </BottomSheet>
         </SafeAreaView>
